@@ -82,6 +82,14 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "JobTemplate")
 		os.Exit(1)
 	}
+	if err = (&batchv1alpha1.JobFlow{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "JobFlow")
+		os.Exit(1)
+	}
+	if err = (&batchv1alpha1.JobTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "JobTemplate")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")
