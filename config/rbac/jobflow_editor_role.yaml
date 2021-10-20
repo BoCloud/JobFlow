@@ -1,0 +1,24 @@
+# permissions for end users to edit jobflows.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: jobflow-editor-role
+rules:
+- apiGroups:
+  - batch.volcano.sh
+  resources:
+  - jobflows
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - batch.volcano.sh
+  resources:
+  - jobflows/status
+  verbs:
+  - get
