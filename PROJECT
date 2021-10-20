@@ -4,4 +4,7 @@ resources:
 - group: batch
   kind: JobFlow
   version: v1alpha1
+- group: batch
+  kind: JobTemplate
+  version: v1alpha1
 version: "2"
