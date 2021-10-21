@@ -37,7 +37,7 @@ type JobTemplateReconciler struct {
 // +kubebuilder:rbac:groups=batch.volcano.sh,resources=jobtemplates,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch.volcano.sh,resources=jobtemplates/status,verbs=get;update;patch
 
-func (r *JobTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *JobTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
 	_ = r.Log.WithValues("jobtemplate", req.NamespacedName)
 

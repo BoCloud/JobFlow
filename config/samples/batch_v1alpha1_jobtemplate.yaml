@@ -1,7 +1,7 @@
 apiVersion: batch.volcano.sh/v1
-kind: JobFlow
+kind: JobTemplate
 metadata:
-  name: jobflow-sample
+  name: jobtemplate-sample
 spec:
   # Add fields here
   foo: bar
