@@ -1,5 +1,5 @@
 /*
-
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,24 +18,41 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	vcbatch "volcano.sh/apis/pkg/apis/batch/v1alpha1"
+	"volcano.sh/apis/pkg/apis/batch/v1alpha1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// +kubebuilder:object:root=true
+// JobTemplateSpec defines the desired state of JobTemplate
+type JobTemplateSpec struct {
+	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+
+	// Foo is an example field of JobTemplate. Edit jobtemplate_types.go to remove/update
+	v1alpha1.JobSpec
+}
+
+// JobTemplateStatus defines the observed state of JobTemplate
+type JobTemplateStatus struct {
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+	v1alpha1.JobStatus
+}
+
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
 
 // JobTemplate is the Schema for the jobtemplates API
 type JobTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   vcbatch.JobSpec   `json:"spec,omitempty"`
-	Status vcbatch.JobStatus `json:"status,omitempty"`
+	Spec   v1alpha1.JobSpec   `json:"spec,omitempty"`
+	Status v1alpha1.JobStatus `json:"status,omitempty"`
 }
 
-// +kubebuilder:object:root=true
+//+kubebuilder:object:root=true
 
 // JobTemplateList contains a list of JobTemplate
 type JobTemplateList struct {

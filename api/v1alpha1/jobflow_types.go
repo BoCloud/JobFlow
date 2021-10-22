@@ -1,5 +1,5 @@
 /*
-
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,18 +28,18 @@ type JobFlowSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Flow defines the dependent of jobs
-	Flow []Flow `json:"flow"`
+	// Foo is an example field of JobFlow. Edit jobflow_types.go to remove/update
+	Flow []Flow `json:"flow,omitempty"`
 }
 
 // Flow defines the dependent of jobs
 type Flow struct {
-	Name     string   `json:"name"`
-	DependOn DependOn `json:"dependOn"`
+	Name      string     `json:"name"`
+	DependsOn *DependsOn `json:"dependsOn,omitempty"`
 }
 
-type DependOn struct {
-	Target []string `json:"target"`
+type DependsOn struct {
+	Target []string `json:"target,omitempty"`
 }
 
 // JobFlowStatus defines the observed state of JobFlow
@@ -47,21 +47,21 @@ type JobFlowStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	PendingJobs    []string             `json:"pendingJobs"`
-	RunningJobs    []string             `json:"runningJobs"`
-	FailedJobs     []string             `json:"failedJobs"`
-	CompletedJobs  []string             `json:"completedJobs"`
-	TerminatedJobs []string             `json:"terminatedJobs"`
-	UnKnowJobs     []string             `json:"unKnowJobs"`
-	JobList        []string             `json:"jobList"`
-	Conditions     map[string]Condition `json:"conditions"`
+	PendingJobs    []string             `json:"pendingJobs,omitempty"`
+	RunningJobs    []string             `json:"runningJobs,omitempty"`
+	FailedJobs     []string             `json:"failedJobs,omitempty"`
+	CompletedJobs  []string             `json:"completedJobs,omitempty"`
+	TerminatedJobs []string             `json:"terminatedJobs,omitempty"`
+	UnKnowJobs     []string             `json:"unKnowJobs,omitempty"`
+	JobList        []string             `json:"jobList,omitempty"`
+	Conditions     map[string]Condition `json:"conditions,omitempty"`
 }
 
 type Condition struct {
-	Phase          JobPhase        `json:"phase"`
-	CreateTime     *metav1.Time    `json:"createTime"`
-	CompleteTime   *metav1.Time    `json:"completeTime"`
-	TaskConditions []TaskCondition `json:"taskConditions"`
+	Phase         *JobPhase      `json:"phase,omitempty"`
+	CreateTime    *metav1.Time   `json:"createTime,omitempty"`
+	CompleteTime  *metav1.Time   `json:"completeTime,omitempty"`
+	JobConditions []JobCondition `json:"jobConditions,omitempty"`
 }
 
 type JobPhase string
@@ -77,12 +77,16 @@ const (
 	Waiting     JobPhase = "Waiting"
 )
 
-type TaskCondition struct {
-	CompletedTasks []string `json:"completedTasks"`
-	RunningTasks   []string `json:"runningTasks"`
+type JobCondition struct {
+	SucceededJobs []string `json:"succeededJobs,omitempty"`
+	RunningJobs   []string `json:"runningJobs,omitempty"`
+	PendingJobs   []string `json:"pendingJobs,omitempty"`
+	FailedJobs    []string `json:"failedJobs,omitempty"`
+	UnknownJobs   []string `json:"unknownJobs,omitempty"`
 }
 
-// +kubebuilder:object:root=true
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
 
 // JobFlow is the Schema for the jobflows API
 type JobFlow struct {
@@ -93,7 +97,7 @@ type JobFlow struct {
 	Status JobFlowStatus `json:"status,omitempty"`
 }
 
-// +kubebuilder:object:root=true
+//+kubebuilder:object:root=true
 
 // JobFlowList contains a list of JobFlow
 type JobFlowList struct {

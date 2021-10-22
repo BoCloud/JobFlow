@@ -1,4 +1,4 @@
-apiVersion: batch.volcano.sh/v1
+apiVersion: batch.volcano.sh/v1alpha1
 kind: JobTemplate
 metadata:
   name: jobtemplate-sample
