@@ -73,33 +73,42 @@ func (r *JobFlowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	log.Log.Info(fmt.Sprintf("2.%v", goruntime.NumGoroutine()))
 
 	// your logic here
+	scheduledResult := ctrl.Result{
+		Requeue:      false,
+		RequeueAfter: time.Second * 5,
+	}
 	//初始化vcclient
 	vcclient := utils.VcClient
-
 	//根据namespace加载JobFlow
 	jobFlow := &jobflowv1alpha1.JobFlow{}
 	err := r.Get(ctx, req.NamespacedName, jobFlow)
 	if err != nil {
 		//If no instance is found, it will be returned directly
 		if errors.IsNotFound(err) {
-			return ctrl.Result{}, nil
+			return scheduledResult, nil
 		}
 		log.Log.Error(err, err.Error())
 		r.Recorder.Eventf(jobFlow, corev1.EventTypeWarning, "Created", err.Error())
-		return ctrl.Result{}, err
+		return scheduledResult, err
 	}
 
 	//根据JobFlow的flow依赖加载所有需要的jobTemplate，若无法加载所有需要的jobTemplate则直接返回错误信息
 	flowJobList, jobList, err := r.loadJobTemplate(ctx, *jobFlow)
 	if err != nil {
-		return ctrl.Result{}, err
+		return scheduledResult, err
 	}
 	//根据依赖顺序下发job。若下发的job没有依赖项，则直接下发。若有依赖则当所有依赖项达到条件后开始下发
 	if err = r.deployJob(ctx, flowJobList, *jobFlow, vcclient); err != nil {
 		log.Log.Error(err, "")
-		return ctrl.Result{}, err
+		return scheduledResult, err
 	}
-
+	//更新status
+	fmt.Println("开始更新status")
+	fmt.Println(time.Now())
+	if err = r.updateStatus(ctx, jobFlow, jobList, vcclient); err != nil {
+		log.Log.Error(err, "更新status错误")
+		return scheduledResult, err
+	}
 	// 声明 finalizer 字段，类型为字符串
 	myFinalizerName := "storage.finalizers.tutorial.kubebuilder.io"
 
@@ -109,7 +118,7 @@ func (r *JobFlowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if !containsString(jobFlow.ObjectMeta.Finalizers, myFinalizerName) {
 			jobFlow.ObjectMeta.Finalizers = append(jobFlow.ObjectMeta.Finalizers, myFinalizerName)
 			if err := r.Update(context.Background(), jobFlow); err != nil {
-				return ctrl.Result{RequeueAfter: time.Second * 5}, err
+				return scheduledResult, err
 			}
 		}
 	} else {
@@ -118,25 +127,18 @@ func (r *JobFlowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// 如果存在 finalizer 且与上述声明的 finalizer 匹配，那么执行对应 hook 逻辑
 			if err := r.deleteExternalResources(ctx, jobFlow, vcclient); err != nil {
 				// 如果删除失败，则直接返回对应 err，controller 会自动执行重试逻辑
-				return ctrl.Result{}, err
+				return scheduledResult, err
 			}
 
 			// 如果对应 hook 执行成功，那么清空 finalizers， k8s 删除对应资源
 			jobFlow.ObjectMeta.Finalizers = removeString(jobFlow.ObjectMeta.Finalizers, myFinalizerName)
 			if err := r.Update(context.Background(), jobFlow); err != nil {
-				return ctrl.Result{}, err
+				return scheduledResult, err
 			}
 		}
-		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+		return scheduledResult, nil
 	}
-	//更新status
-	fmt.Println("开始更新status")
-	fmt.Println(time.Now())
-	if err = r.updateStatus(ctx, jobFlow, jobList, vcclient); err != nil {
-		log.Log.Error(err, "更新status错误")
-		return ctrl.Result{}, err
-	}
-	return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+	return scheduledResult, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -242,63 +244,63 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, flowJobMap map[string
 			//}
 			r.Recorder.Eventf(&jobFlow, corev1.EventTypeNormal, "Created", fmt.Sprintf("create a job named %v!", flowJob.Job.Name))
 			delete(flowJobMap, name)
-		}
-	}
-	//部署有依赖项job
-	for name, flowJob := range flowJobMap {
-		flag := true
-		for _, targetName := range flowJob.Flow.DependsOn.Target {
-			job := &v1alpha1.Job{}
-			namespacedName := types.NamespacedName{
-				Namespace: flowJob.Job.Namespace,
-				Name:      targetName,
-			}
-			if err := r.Get(ctx, namespacedName, job); err != nil {
-				if err != nil {
-					if errors.IsNotFound(err) {
-						log.Log.Info(fmt.Sprintf("No %v Job found！", namespacedName.Name))
-						flag = false
-						continue
-					} else {
-						return err
+			continue
+		} else {
+			//部署有依赖项job
+			flag := true
+			for _, targetName := range flowJob.Flow.DependsOn.Target {
+				job := &v1alpha1.Job{}
+				namespacedName := types.NamespacedName{
+					Namespace: flowJob.Job.Namespace,
+					Name:      targetName,
+				}
+				if err := r.Get(ctx, namespacedName, job); err != nil {
+					if err != nil {
+						if errors.IsNotFound(err) {
+							log.Log.Info(fmt.Sprintf("No %v Job found！", namespacedName.Name))
+							flag = false
+							continue
+						} else {
+							return err
+						}
 					}
 				}
+				//job, err := vcclient.Jobs(flowJob.Job.Namespace).Get(ctx, getJobName(jobFlow.Name, targetName), metav1.GetOptions{})
+				//if err != nil {
+				//	if errors.IsNotFound(err) {
+				//		log.Log.Info("No Job found！")
+				//		flag = false
+				//		continue
+				//	} else {
+				//		return err
+				//	}
+				//}
+				if job.Status.State.Phase != v1alpha1.Completed && job.Status.State.Phase != v1alpha1.Completing {
+					flag = false
+				}
 			}
-			//job, err := vcclient.Jobs(flowJob.Job.Namespace).Get(ctx, getJobName(jobFlow.Name, targetName), metav1.GetOptions{})
-			//if err != nil {
-			//	if errors.IsNotFound(err) {
-			//		log.Log.Info("No Job found！")
-			//		flag = false
-			//		continue
-			//	} else {
-			//		return err
-			//	}
-			//}
-			if job.Status.State.Phase != v1alpha1.Completed && job.Status.State.Phase != v1alpha1.Completing {
-				flag = false
-			}
-		}
-		//依赖项不满足要求则跳过该job
-		if !flag {
-			continue
-		}
-		//依赖项满足要求，开始下发该job
-		//create job
-		if err := r.Create(ctx, flowJob.Job); err != nil {
-			if errors.IsAlreadyExists(err) {
+			//依赖项不满足要求则跳过该job
+			if !flag {
 				continue
 			}
-			return err
+			//
+			//依赖项满足要求，开始下发该job
+			if err := r.Create(ctx, flowJob.Job); err != nil {
+				if errors.IsAlreadyExists(err) {
+					continue
+				}
+				return err
+			}
+			//if _, err := vcclient.Jobs(flowJob.Job.Namespace).Create(ctx, flowJob.Job, metav1.CreateOptions{}); err != nil {
+			//	if errors.IsAlreadyExists(err) {
+			//		continue
+			//	}
+			//	log.Log.Error(err, err.Error())
+			//	return err
+			//}
+			r.Recorder.Eventf(&jobFlow, corev1.EventTypeNormal, "Created", fmt.Sprintf("create a job named %v!", flowJob.Job.Name))
+			delete(flowJobMap, name)
 		}
-		//if _, err := vcclient.Jobs(flowJob.Job.Namespace).Create(ctx, flowJob.Job, metav1.CreateOptions{}); err != nil {
-		//	if errors.IsAlreadyExists(err) {
-		//		continue
-		//	}
-		//	log.Log.Error(err, err.Error())
-		//	return err
-		//}
-		r.Recorder.Eventf(&jobFlow, corev1.EventTypeNormal, "Created", fmt.Sprintf("create a job named %v!", flowJob.Job.Name))
-		delete(flowJobMap, name)
 	}
 	return nil
 }
@@ -348,7 +350,7 @@ func (r *JobFlowReconciler) deleteExternalResources(ctx context.Context, jobFlow
 
 //更新status
 func (r *JobFlowReconciler) updateStatus(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow, jobList []string, vcclient *batchv1alpha1.BatchV1alpha1Client) error {
-	jobFlowStatus, err := getAllJobStatus(ctx, jobFlow, jobList, vcclient)
+	jobFlowStatus, err := r.getAllJobStatus(ctx, jobFlow, jobList, vcclient)
 	if err != nil {
 		return err
 	}
@@ -360,7 +362,7 @@ func (r *JobFlowReconciler) updateStatus(ctx context.Context, jobFlow *jobflowv1
 }
 
 // getAllJobStatus 获取所有已经创建的job的信息
-func getAllJobStatus(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow, jobList []string, vcclient *batchv1alpha1.BatchV1alpha1Client) (*jobflowv1alpha1.JobFlowStatus, error) {
+func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow, jobList []string, vcclient *batchv1alpha1.BatchV1alpha1Client) (*jobflowv1alpha1.JobFlowStatus, error) {
 	allJobList, err := vcclient.Jobs(jobFlow.Namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		log.Log.Error(err, "")
@@ -399,34 +401,11 @@ func getAllJobStatus(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow, jobL
 			UnKnowJobs = append(UnKnowJobs, job.Name)
 		}
 
-		//taskStatusCount := make([]jobflowv1alpha1.TaskStatus,0)
-		//for taskName, state := range job.Status.TaskStatusCount {
-		//	for phase, num := range state.Phase {
-		//
-		//	}
-		//	succeededPods := make([]string,0)
-		//	runningPods := make([]string,0)
-		//	pendingPods := make([]string,0)
-		//	FailedPods := make([]string,0)
-		//	UnknownPods := make([]string,0)
-		//	jobCondition := &jobflowv1alpha1.JobCondition{
-		//		SucceededPods: nil,
-		//		RunningPods:   nil,
-		//		PendingPods:   nil,
-		//		FailedPods:    nil,
-		//		UnknownPods:   nil,
-		//	}
-		//	taskStatus := &jobflowv1alpha1.TaskStatus{
-		//		Name:          taskName,
-		//		JobConditions: nil,
-		//	}
-		//	taskStatusCount = append(taskStatusCount, )
-		//}
 		conditions[job.Name] = jobflowv1alpha1.Condition{
 			Phase:           &job.Status.State.Phase,
 			CreateTime:      &job.CreationTimestamp,
 			RunningDuration: job.Status.RunningDuration,
-			TaskStatusCount: nil,
+			TaskStatusCount: job.Status.TaskStatusCount,
 		}
 	}
 
@@ -438,7 +417,7 @@ func getAllJobStatus(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow, jobL
 		TerminatedJobs: TerminatedJobs,
 		UnKnowJobs:     UnKnowJobs,
 		JobList:        jobList,
-		Conditions:     nil,
+		Conditions:     conditions,
 	}
 	return &jobFlowStatus, nil
 }
@@ -446,8 +425,8 @@ func (r *JobFlowReconciler) jobUpdateHandler(e event.UpdateEvent, q workqueue.Ra
 	references := e.ObjectOld.GetOwnerReferences()
 	for _, owner := range references {
 		if owner.Kind == "JobFlow" && strings.Contains(owner.APIVersion, "volcano") {
-			q.Add(reconcile.Request{
-				NamespacedName: types.NamespacedName{Name: owner.Name},
+			q.AddRateLimited(reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: owner.Name, Namespace: e.ObjectOld.GetNamespace()},
 			})
 		}
 	}

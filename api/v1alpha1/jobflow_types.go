@@ -59,23 +59,10 @@ type JobFlowStatus struct {
 }
 
 type Condition struct {
-	Phase           *v1alpha1.JobPhase `json:"phase,omitempty"`
-	CreateTime      *metav1.Time       `json:"createTime,omitempty"`
-	RunningDuration *metav1.Duration   `json:"runningDuration,omitempty"`
-	TaskStatusCount []TaskStatus       `json:"taskStatusCount,omitempty"`
-}
-
-type TaskStatus struct {
-	Name          string         `json:"name,omitempty"`
-	JobConditions []JobCondition `json:"jobConditions,omitempty"`
-}
-
-type JobCondition struct {
-	SucceededPods []string `json:"succeededPods,omitempty"`
-	RunningPods   []string `json:"runningPods,omitempty"`
-	PendingPods   []string `json:"pendingPods,omitempty"`
-	FailedPods    []string `json:"failedPods,omitempty"`
-	UnknownPods   []string `json:"unknownPods,omitempty"`
+	Phase           *v1alpha1.JobPhase            `json:"phase,omitempty"`
+	CreateTime      *metav1.Time                  `json:"createTime,omitempty"`
+	RunningDuration *metav1.Duration              `json:"runningDuration,omitempty"`
+	TaskStatusCount map[string]v1alpha1.TaskState `json:"taskStatusCount,omitempty"`
 }
 
 //+kubebuilder:object:root=true

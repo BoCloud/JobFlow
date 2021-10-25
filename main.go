@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	v1 "k8s.io/api/core/v1"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -49,6 +50,7 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 
 	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(v1.AddToScheme(scheme))
 }
 
 func main() {
