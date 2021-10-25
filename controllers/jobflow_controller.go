@@ -26,11 +26,17 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/workqueue"
 	goruntime "runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+	"strings"
 	"time"
 	"volcano.sh/apis/pkg/apis/batch/v1alpha1"
 
@@ -138,6 +144,7 @@ func (r *JobFlowReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&jobflowv1alpha1.JobFlow{}).
 		Owns(&v1alpha1.Job{}).
+		Watches(&source.Kind{Type: &v1alpha1.Job{}}, handler.Funcs{UpdateFunc: r.jobUpdateHandler}).
 		Complete(r)
 }
 
@@ -434,4 +441,14 @@ func getAllJobStatus(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow, jobL
 		Conditions:     nil,
 	}
 	return &jobFlowStatus, nil
+}
+func (r *JobFlowReconciler) jobUpdateHandler(e event.UpdateEvent, q workqueue.RateLimitingInterface) {
+	references := e.ObjectOld.GetOwnerReferences()
+	for _, owner := range references {
+		if owner.Kind == "JobFlow" && strings.Contains(owner.APIVersion, "volcano") {
+			q.Add(reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: owner.Name},
+			})
+		}
+	}
 }
