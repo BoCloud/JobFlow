@@ -9,6 +9,6 @@ require (
 	k8s.io/apimachinery v0.20.2
 	k8s.io/client-go v0.20.2
 	sigs.k8s.io/controller-runtime v0.8.3
-	volcano.sh/apis v1.3.0-k8s1.18.3-alpha.3
+	volcano.sh/apis v0.0.0-20210603070204-70005b2d502a
 
 )

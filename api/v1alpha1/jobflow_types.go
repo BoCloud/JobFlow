@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"volcano.sh/apis/pkg/apis/batch/v1alpha1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -29,7 +30,7 @@ type JobFlowSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of JobFlow. Edit jobflow_types.go to remove/update
-	Flow []Flow `json:"flow,omitempty"`
+	Flows []Flow `json:"flows,omitempty"`
 }
 
 // Flow defines the dependent of jobs
@@ -58,31 +59,23 @@ type JobFlowStatus struct {
 }
 
 type Condition struct {
-	Phase         *JobPhase      `json:"phase,omitempty"`
-	CreateTime    *metav1.Time   `json:"createTime,omitempty"`
-	CompleteTime  *metav1.Time   `json:"completeTime,omitempty"`
+	Phase           *v1alpha1.JobPhase `json:"phase,omitempty"`
+	CreateTime      *metav1.Time       `json:"createTime,omitempty"`
+	RunningDuration *metav1.Duration   `json:"runningDuration,omitempty"`
+	TaskStatusCount []TaskStatus       `json:"taskStatusCount,omitempty"`
+}
+
+type TaskStatus struct {
+	Name          string         `json:"name,omitempty"`
 	JobConditions []JobCondition `json:"jobConditions,omitempty"`
 }
 
-type JobPhase string
-
-const (
-	Running     JobPhase = "Running"
-	Pending     JobPhase = "Pending"
-	Succeeded   JobPhase = "Succeeded"
-	Terminating JobPhase = "Terminating"
-	Terminated  JobPhase = "Terminated"
-	Unknown     JobPhase = "Unknown"
-	Failed      JobPhase = "Failed"
-	Waiting     JobPhase = "Waiting"
-)
-
 type JobCondition struct {
-	SucceededJobs []string `json:"succeededJobs,omitempty"`
-	RunningJobs   []string `json:"runningJobs,omitempty"`
-	PendingJobs   []string `json:"pendingJobs,omitempty"`
-	FailedJobs    []string `json:"failedJobs,omitempty"`
-	UnknownJobs   []string `json:"unknownJobs,omitempty"`
+	SucceededPods []string `json:"succeededPods,omitempty"`
+	RunningPods   []string `json:"runningPods,omitempty"`
+	PendingPods   []string `json:"pendingPods,omitempty"`
+	FailedPods    []string `json:"failedPods,omitempty"`
+	UnknownPods   []string `json:"unknownPods,omitempty"`
 }
 
 //+kubebuilder:object:root=true

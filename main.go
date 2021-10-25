@@ -30,6 +30,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"volcano.sh/apis/pkg/apis/batch/v1alpha1"
 
 	batchv1alpha1 "jobflow/api/v1alpha1"
 	"jobflow/controllers"
@@ -46,6 +47,8 @@ func init() {
 
 	utilruntime.Must(batchv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
+
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 }
 
 func main() {
