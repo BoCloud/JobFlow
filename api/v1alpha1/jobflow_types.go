@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"volcano.sh/apis/pkg/apis/batch/v1alpha1"
 )
@@ -41,6 +42,30 @@ type Flow struct {
 
 type DependsOn struct {
 	Target []string `json:"target,omitempty"`
+	Probe  *Probe   `json:"probe,omitempty"`
+}
+
+type Probe struct {
+	HttpGetList    []HttpGet    `json:"httpGetList,omitempty"`
+	TcpSocketList  []TcpSocket  `json:"tcpSocketList,omitempty"`
+	TaskStatusList []TaskStatus `json:"taskStatusList,omitempty"`
+}
+
+type HttpGet struct {
+	TaskName   string        `json:"taskName,omitempty"`
+	Path       string        `json:"path,omitempty"`
+	Port       int           `json:"port,omitempty"`
+	HTTPHeader v1.HTTPHeader `json:"httpHeader,omitempty"`
+}
+
+type TcpSocket struct {
+	TaskName string `json:"taskName,omitempty"`
+	Port     int    `json:"port"`
+}
+
+type TaskStatus struct {
+	TaskName string `json:"taskName,omitempty"`
+	Phase    string `json:"phase,omitempty"`
 }
 
 // JobFlowStatus defines the observed state of JobFlow

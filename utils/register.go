@@ -2,21 +2,19 @@ package utils
 
 import (
 	"errors"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"os"
 	"path"
-	"time"
 	batchv1alpha2 "volcano.sh/apis/pkg/client/clientset/versioned/typed/batch/v1alpha1"
 )
-
-var VcClient *batchv1alpha2.BatchV1alpha1Client
 
 func init() {
 	VcClient, _ = GetVcclient()
 }
+
+var VcClient *batchv1alpha2.BatchV1alpha1Client
 
 func GetVcclient() (*batchv1alpha2.BatchV1alpha1Client, error) {
 	config, err := GetKubeConfig()
@@ -30,22 +28,19 @@ func GetVcclient() (*batchv1alpha2.BatchV1alpha1Client, error) {
 	return vcclient, nil
 }
 
-func GetInformer() {
+func GetKubeclient() (*kubernetes.Clientset, error) {
 	config, err := GetKubeConfig()
 	if err != nil {
 		panic(err.Error())
 	}
-	clientSet, err := kubernetes.NewForConfig(config)
+	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		panic(err.Error())
+		return nil, err
 	}
-	sharedInformerFactory := informers.NewSharedInformerFactory(clientSet, time.Minute)
-	stopCh := make(chan struct{})
-	sharedInformerFactory.Start(stopCh)
-	sharedInformerFactory.Core().V1().Pods().Lister()
+	return client, nil
 }
 
-func GetKubeConfig() (*restclient.Config, error) {
+func GetKubeConfig() (*rest.Config, error) {
 	var kubeconfig string
 	if home := homeDir(); home != "" {
 		kubeconfig = path.Join(home, ".kube", "config")
