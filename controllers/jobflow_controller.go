@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	goruntime "runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -69,14 +68,10 @@ type JobFlowReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *JobFlowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
-	log.Log.Info(fmt.Sprintf("1.%v", req))
-	log.Log.Info(fmt.Sprintf("2.%v", goruntime.NumGoroutine()))
+	//log.Log.Info(fmt.Sprintf("req.%v", req))
+	//log.Log.Info(fmt.Sprintf("goruntime.NumGoroutine():%v", goruntime.NumGoroutine()))
 
-	// your logic here
-	scheduledResult := ctrl.Result{
-		Requeue:      false,
-		RequeueAfter: time.Second * 5,
-	}
+	scheduledResult := ctrl.Result{}
 	//初始化vcclient
 	vcclient := utils.VcClient
 	//根据namespace加载JobFlow
@@ -141,15 +136,6 @@ func (r *JobFlowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return scheduledResult, nil
 }
 
-// SetupWithManager sets up the controller with the Manager.
-func (r *JobFlowReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&jobflowv1alpha1.JobFlow{}).
-		Owns(&v1alpha1.Job{}).
-		Watches(&source.Kind{Type: &v1alpha1.Job{}}, handler.Funcs{UpdateFunc: r.jobUpdateHandler}).
-		Complete(r)
-}
-
 //根据JobFlow的flow依赖加载所有需要的jobTemplate，若无法加载所有需要的jobTemplate则直接返回错误信息
 func (r *JobFlowReconciler) loadJobTemplate(ctx context.Context, jobFlow jobflowv1alpha1.JobFlow) (map[string]FlowJobTemplate, []string, error) {
 	//加载所有的jobTemplate
@@ -178,9 +164,6 @@ func (r *JobFlowReconciler) loadJobTemplate(ctx context.Context, jobFlow jobflow
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      jobName,
 				Namespace: jobFlow.Namespace,
-				Labels: map[string]string{
-					JobFlow: jobFlow.Name,
-				},
 			},
 			Spec:   jobTemplate.Spec,
 			Status: v1alpha1.JobStatus{},
@@ -234,14 +217,6 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, flowJobMap map[string
 				}
 				return err
 			}
-			//_, err := vcclient.Jobs(flowJob.Job.Namespace).Create(ctx, flowJob.Job, metav1.CreateOptions{})
-			//if err != nil {
-			//	if errors.IsAlreadyExists(err) {
-			//		continue
-			//	}
-			//	log.Log.Error(err, err.Error())
-			//	return err
-			//}
 			r.Recorder.Eventf(&jobFlow, corev1.EventTypeNormal, "Created", fmt.Sprintf("create a job named %v!", flowJob.Job.Name))
 			delete(flowJobMap, name)
 			continue
@@ -283,8 +258,10 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, flowJobMap map[string
 			if !flag {
 				continue
 			}
-			//
 			//依赖项满足要求，开始下发该job
+			if err := controllerutil.SetControllerReference(&jobFlow, flowJob.Job, r.Scheme); err != nil {
+				return err
+			}
 			if err := r.Create(ctx, flowJob.Job); err != nil {
 				if errors.IsAlreadyExists(err) {
 					continue
@@ -325,15 +302,6 @@ func removeString(slice []string, s string) (result []string) {
 }
 
 func (r *JobFlowReconciler) deleteExternalResources(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow, vcclient *batchv1alpha1.BatchV1alpha1Client) error {
-	//job := &v1alpha1.Job{}
-	////add ownerReferences
-	//if err := controllerutil.SetControllerReference(jobFlow, job, r.Scheme); err != nil {
-	//	return err
-	//}
-	//if err := r.DeleteAllOf(ctx,job,client.InNamespace(jobFlow.Namespace));err != nil {
-	//	log.Log.Error(err, "")
-	//	return err
-	//}
 	// 删除 jobFlow关联的所有job
 	for _, flow := range jobFlow.Spec.Flows {
 		if err := vcclient.Jobs(jobFlow.Namespace).Delete(ctx, getJobName(jobFlow.Name, flow.Name), metav1.DeleteOptions{}); err != nil {
@@ -355,6 +323,8 @@ func (r *JobFlowReconciler) updateStatus(ctx context.Context, jobFlow *jobflowv1
 		return err
 	}
 	jobFlow.Status = *jobFlowStatus
+	jobFlow.CreationTimestamp = metav1.Time{}
+	jobFlow.UID = ""
 	if err = r.Status().Update(ctx, jobFlow); err != nil {
 		return err
 	}
@@ -370,8 +340,10 @@ func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflo
 	}
 	jobListRes := make([]v1alpha1.Job, 0)
 	for _, job := range allJobList.Items {
-		if job.Labels[JobFlow] == jobFlow.Name {
-			jobListRes = append(jobListRes, job)
+		for _, reference := range job.OwnerReferences {
+			if reference.Kind == JobFlow && strings.Contains(reference.APIVersion, "volcano") && reference.Name == jobFlow.Name {
+				jobListRes = append(jobListRes, job)
+			}
 		}
 	}
 	conditions := make(map[string]jobflowv1alpha1.Condition)
@@ -421,6 +393,16 @@ func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflo
 	}
 	return &jobFlowStatus, nil
 }
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *JobFlowReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&jobflowv1alpha1.JobFlow{}).
+		Owns(&v1alpha1.Job{}).
+		Watches(&source.Kind{Type: &v1alpha1.Job{}}, handler.Funcs{UpdateFunc: r.jobUpdateHandler}).
+		Complete(r)
+}
+
 func (r *JobFlowReconciler) jobUpdateHandler(e event.UpdateEvent, q workqueue.RateLimitingInterface) {
 	references := e.ObjectOld.GetOwnerReferences()
 	for _, owner := range references {
