@@ -19,23 +19,39 @@ package controllers
 import (
 	"context"
 	"fmt"
+	batchv1alpha1 "jobflow/api/v1alpha1"
+	jobflowv1alpha1 "jobflow/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	batchv1alpha1 "jobflow/api/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+	"strings"
+	"time"
+	"volcano.sh/apis/pkg/apis/batch/v1alpha1"
 )
 
 // JobTemplateReconciler reconciles a Job object
 type JobTemplateReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
 }
 
 //+kubebuilder:rbac:groups=batch.volcano.sh,resources=jobtemplates,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=batch.volcano.sh,resources=jobtemplates/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=batch.volcano.sh,resources=jobtemplates/finalizers,verbs=update
+// +kubebuilder:rbac:groups=batch.volcano.sh,resources=jobs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=batch.volcano.sh,resources=jobs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -47,16 +63,65 @@ type JobTemplateReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *JobTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log.Log.Info("start jobTemplate Reconcile..........")
 	_ = log.FromContext(ctx)
 	log.Log.Info(fmt.Sprintf("event for jobTemplate: %v", req.Name))
 	// your logic here
+	scheduledResult := ctrl.Result{}
 
-	return ctrl.Result{}, nil
+	//根据namespace加载JobTemplate
+	jobTemplate := &jobflowv1alpha1.JobTemplate{}
+	time.Sleep(time.Second)
+	err := r.Get(ctx, req.NamespacedName, jobTemplate)
+	if err != nil {
+		//If no instance is found, it will be returned directly
+		if errors.IsNotFound(err) {
+			log.Log.Info(fmt.Sprintf("not fount jobTemplate : %v", req.Name))
+			return scheduledResult, nil
+		}
+		log.Log.Error(err, err.Error())
+		r.Recorder.Eventf(jobTemplate, corev1.EventTypeWarning, "Created", err.Error())
+		return scheduledResult, err
+	}
+	//查询根据JobTemplate创建的job
+	jobList := &v1alpha1.JobList{}
+	err = r.List(ctx, jobList)
+	if err != nil {
+		log.Log.Error(err, "")
+		return scheduledResult, err
+	}
+	filterJobList := make([]v1alpha1.Job, 0)
+	for _, item := range jobList.Items {
+		if item.Annotations["createByJobTemplate"] == req.Name+"."+req.Namespace {
+			filterJobList = append(filterJobList, item)
+		}
+	}
+	jobListName := make([]string, 0)
+	for _, job := range filterJobList {
+		jobListName = append(jobListName, job.Name)
+	}
+	jobTemplate.Status.JobRelyOnList = jobListName
+	//更新
+	if err := r.Status().Update(ctx, jobTemplate); err != nil {
+		log.Log.Error(err, "update error!")
+		return scheduledResult, err
+	}
+	log.Log.Info("end jobTemplate Reconcile..........")
+	return scheduledResult, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *JobTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&batchv1alpha1.JobTemplate{}).
+		Watches(&source.Kind{Type: &v1alpha1.Job{}}, handler.Funcs{CreateFunc: jobCreateHandler}).
 		Complete(r)
+}
+
+func jobCreateHandler(e event.CreateEvent, w workqueue.RateLimitingInterface) {
+	if e.Object.GetAnnotations()["createByJobTemplate"] != "" {
+		nameNamespace := strings.Split(e.Object.GetAnnotations()["createByJobTemplate"], ".")
+		name, namespace := nameNamespace[0], nameNamespace[1]
+		w.AddRateLimited(reconcile.Request{NamespacedName: types.NamespacedName{Name: name, Namespace: namespace}})
+	}
 }

@@ -37,7 +37,14 @@ type JobTemplateSpec struct {
 type JobTemplateStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	v1alpha1.JobStatus
+
+	//描述了根据jobTemplate生成的jobList
+	JobRelyOnList []string `json:"jobRelyOnList,omitempty"`
+}
+
+type JobRelyOnList struct {
+	Name      string `json:"name,omitempty"`
+	NameSpace string `json:"nameSpace,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -48,8 +55,8 @@ type JobTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   v1alpha1.JobSpec   `json:"spec,omitempty"`
-	Status v1alpha1.JobStatus `json:"status,omitempty"`
+	Spec   v1alpha1.JobSpec  `json:"spec,omitempty"`
+	Status JobTemplateStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true

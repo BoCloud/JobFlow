@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	goruntime "runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -37,10 +36,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"strings"
+	"time"
 	"volcano.sh/apis/pkg/apis/batch/v1alpha1"
 
 	jobflowv1alpha1 "jobflow/api/v1alpha1"
-	batchv1alpha1 "volcano.sh/apis/pkg/client/clientset/versioned/typed/batch/v1alpha1"
 )
 
 // JobFlowReconciler reconciles a JobFlow object
@@ -67,19 +66,19 @@ type JobFlowReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *JobFlowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log.Log.Info("start jobFlow Reconcile..........")
 	_ = log.FromContext(ctx)
 	log.Log.Info(fmt.Sprintf("req.%v", req))
-	log.Log.Info(fmt.Sprintf("goruntime.NumGoroutine():%v", goruntime.NumGoroutine()))
 
 	scheduledResult := ctrl.Result{}
-	//初始化vcclient
-	vcclient := utils.VcClient
 	//根据namespace加载JobFlow
 	jobFlow := &jobflowv1alpha1.JobFlow{}
+	time.Sleep(time.Second)
 	err := r.Get(ctx, req.NamespacedName, jobFlow)
 	if err != nil {
 		//If no instance is found, it will be returned directly
 		if errors.IsNotFound(err) {
+			log.Log.Info(fmt.Sprintf("not fount jobFlow : %v", req.Name))
 			return scheduledResult, nil
 		}
 		log.Log.Error(err, err.Error())
@@ -94,12 +93,11 @@ func (r *JobFlowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	//更新status
-	fmt.Println("开始更新status")
-	if err = r.updateStatus(ctx, jobFlow, vcclient); err != nil {
-		log.Log.Error(err, "更新status错误")
+	if err = r.updateStatus(ctx, jobFlow); err != nil {
+		log.Log.Error(err, "更新jobFlow status错误")
 		return scheduledResult, err
 	}
-	log.Log.Info("end........")
+	log.Log.Info("end  jobFlow   Reconcile........")
 	return scheduledResult, nil
 }
 
@@ -109,7 +107,6 @@ func getJobName(jobFlowName string, jobTemplateName string) string {
 
 const (
 	JobFlow = "JobFlow"
-	Job     = "Job"
 )
 
 //根据依赖顺序下发job。若下发的job没有依赖项，则直接下发。若有依赖则当所有依赖项达到条件后开始下发
@@ -139,8 +136,9 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 					}
 					job = &v1alpha1.Job{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      jobName,
-							Namespace: jobFlow.Namespace,
+							Name:        jobName,
+							Namespace:   jobFlow.Namespace,
+							Annotations: map[string]string{utils.CreateByJobTemplate: utils.GetCreateByJobTemplateValue(flow.Name, jobFlow.Namespace)},
 						},
 						Spec:   jobTemplate.Spec,
 						Status: v1alpha1.JobStatus{},
@@ -154,6 +152,7 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 						}
 						return err
 					}
+					r.Recorder.Eventf(&jobFlow, corev1.EventTypeNormal, "Created", fmt.Sprintf("create a job named %v!", job.Name))
 				} else {
 					//查询依赖项时候符合要求
 					flag := true
@@ -169,15 +168,15 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 								if errors.IsNotFound(err) {
 									log.Log.Info(fmt.Sprintf("No %v Job found！", namespacedName.Name))
 									flag = false
-									continue
-								} else {
-									return err
+									break
 								}
+								return err
 							}
 						}
 						if job.Status.State.Phase != v1alpha1.Completed && job.Status.State.Phase != v1alpha1.Completing {
 							flag = false
 						}
+						//依赖条件满足时
 						if flag {
 							//加载对应的jobTemplate
 							jobTemplate := &jobflowv1alpha1.JobTemplate{}
@@ -191,8 +190,9 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 							}
 							job = &v1alpha1.Job{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      jobName,
-									Namespace: jobFlow.Namespace,
+									Name:        jobName,
+									Namespace:   jobFlow.Namespace,
+									Annotations: map[string]string{utils.CreateByJobTemplate: utils.GetCreateByJobTemplateValue(flow.Name, jobFlow.Namespace)},
 								},
 								Spec:   jobTemplate.Spec,
 								Status: v1alpha1.JobStatus{},
@@ -202,12 +202,11 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 							}
 							if err = r.Create(ctx, job); err != nil {
 								if errors.IsAlreadyExists(err) {
-									continue
+									break
 								}
 								return err
 							}
-						} else {
-
+							r.Recorder.Eventf(&jobFlow, corev1.EventTypeNormal, "Created", fmt.Sprintf("create a job named %v!", job.Name))
 						}
 					}
 				}
@@ -220,8 +219,9 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 }
 
 //更新status
-func (r *JobFlowReconciler) updateStatus(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow, vcclient *batchv1alpha1.BatchV1alpha1Client) error {
-	jobFlowStatus, err := r.getAllJobStatus(ctx, jobFlow, vcclient)
+func (r *JobFlowReconciler) updateStatus(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow) error {
+	log.Log.Info(fmt.Sprintf("开始更新jobFlow status! jobFlowName: %v, jobFlowNamespace: %v ", jobFlow.Name, jobFlow.Namespace))
+	jobFlowStatus, err := r.getAllJobStatus(ctx, jobFlow)
 	if err != nil {
 		return err
 	}
@@ -238,8 +238,9 @@ func (r *JobFlowReconciler) updateStatus(ctx context.Context, jobFlow *jobflowv1
 }
 
 // getAllJobStatus 获取所有已经创建的job的信息
-func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow, vcclient *batchv1alpha1.BatchV1alpha1Client) (*jobflowv1alpha1.JobFlowStatus, error) {
-	allJobList, err := vcclient.Jobs(jobFlow.Namespace).List(ctx, metav1.ListOptions{})
+func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow) (*jobflowv1alpha1.JobFlowStatus, error) {
+	allJobList := new(v1alpha1.JobList)
+	err := r.List(ctx, allJobList)
 	if err != nil {
 		log.Log.Error(err, "")
 		return nil, err
@@ -282,10 +283,9 @@ func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflo
 		default:
 			UnKnowJobs = append(UnKnowJobs, job.Name)
 		}
-
 		conditions[job.Name] = jobflowv1alpha1.Condition{
-			Phase:           &job.Status.State.Phase,
-			CreateTime:      &job.CreationTimestamp,
+			Phase:           job.Status.State.Phase,
+			CreateTime:      job.CreationTimestamp,
 			RunningDuration: job.Status.RunningDuration,
 			TaskStatusCount: job.Status.TaskStatusCount,
 		}
@@ -316,6 +316,7 @@ func (r *JobFlowReconciler) jobUpdateHandler(e event.UpdateEvent, q workqueue.Ra
 	references := e.ObjectOld.GetOwnerReferences()
 	for _, owner := range references {
 		if owner.Kind == "JobFlow" && strings.Contains(owner.APIVersion, "volcano") {
+			log.Log.Info(fmt.Sprintf("监听到job的更新事件！jobName: %v, jobFlowName: %v, nameSpace: %v", e.ObjectOld.GetName(), owner.Name, e.ObjectOld.GetNamespace()))
 			q.AddRateLimited(reconcile.Request{
 				NamespacedName: types.NamespacedName{Name: owner.Name, Namespace: e.ObjectOld.GetNamespace()},
 			})

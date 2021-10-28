@@ -84,8 +84,8 @@ type JobFlowStatus struct {
 }
 
 type Condition struct {
-	Phase           *v1alpha1.JobPhase            `json:"phase,omitempty"`
-	CreateTime      *metav1.Time                  `json:"createTime,omitempty"`
+	Phase           v1alpha1.JobPhase             `json:"phase,omitempty"`
+	CreateTime      metav1.Time                   `json:"createTime,omitempty"`
 	RunningDuration *metav1.Duration              `json:"runningDuration,omitempty"`
 	TaskStatusCount map[string]v1alpha1.TaskState `json:"taskStatusCount,omitempty"`
 }
