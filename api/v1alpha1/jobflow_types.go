@@ -81,7 +81,22 @@ type JobFlowStatus struct {
 	UnKnowJobs     []string             `json:"unKnowJobs,omitempty"`
 	JobList        []string             `json:"jobList,omitempty"`
 	Conditions     map[string]Condition `json:"conditions,omitempty"`
+	State          State                `json:"state,omitempty"`
 }
+
+type State struct {
+	Phase Phase `json:"phase,omitempty"`
+}
+
+type Phase string
+
+const (
+	Succeed     Phase = "Succeed"
+	Terminating Phase = "Terminating"
+	Failed      Phase = "Failed"
+	Running     Phase = "Running"
+	Pending     Phase = "Pending"
+)
 
 type Condition struct {
 	Phase           v1alpha1.JobPhase             `json:"phase,omitempty"`
@@ -91,6 +106,8 @@ type Condition struct {
 }
 
 //+kubebuilder:object:root=true
+//+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.state.phase"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 //+kubebuilder:subresource:status
 
 // JobFlow is the Schema for the jobflows API

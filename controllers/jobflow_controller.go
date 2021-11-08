@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"sort"
 	"strings"
 	"time"
 	"volcano.sh/apis/pkg/apis/batch/v1alpha1"
@@ -173,41 +174,41 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 								return err
 							}
 						}
-						if job.Status.State.Phase != v1alpha1.Completed && job.Status.State.Phase != v1alpha1.Completing {
+						if job.Status.State.Phase != v1alpha1.Completed {
 							flag = false
 						}
-						//依赖条件满足时
-						if flag {
-							//加载对应的jobTemplate
-							jobTemplate := &jobflowv1alpha1.JobTemplate{}
-							namespacedNameTemplate := types.NamespacedName{
-								Namespace: jobFlow.Namespace,
-								Name:      flow.Name,
-							}
-							if err = r.Get(ctx, namespacedNameTemplate, jobTemplate); err != nil {
-								log.Log.Error(err, "未查询到该jobTemplate！")
-								return err
-							}
-							job = &v1alpha1.Job{
-								ObjectMeta: metav1.ObjectMeta{
-									Name:        jobName,
-									Namespace:   jobFlow.Namespace,
-									Annotations: map[string]string{utils.CreateByJobTemplate: utils.GetCreateByJobTemplateValue(flow.Name, jobFlow.Namespace)},
-								},
-								Spec:   jobTemplate.Spec,
-								Status: v1alpha1.JobStatus{},
-							}
-							if err = controllerutil.SetControllerReference(&jobFlow, job, r.Scheme); err != nil {
-								return err
-							}
-							if err = r.Create(ctx, job); err != nil {
-								if errors.IsAlreadyExists(err) {
-									break
-								}
-								return err
-							}
-							r.Recorder.Eventf(&jobFlow, corev1.EventTypeNormal, "Created", fmt.Sprintf("create a job named %v!", job.Name))
+					}
+					//依赖条件满足时
+					if flag {
+						//加载对应的jobTemplate
+						jobTemplate := &jobflowv1alpha1.JobTemplate{}
+						namespacedNameTemplate := types.NamespacedName{
+							Namespace: jobFlow.Namespace,
+							Name:      flow.Name,
 						}
+						if err = r.Get(ctx, namespacedNameTemplate, jobTemplate); err != nil {
+							log.Log.Error(err, "未查询到该jobTemplate！")
+							return err
+						}
+						job = &v1alpha1.Job{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:        jobName,
+								Namespace:   jobFlow.Namespace,
+								Annotations: map[string]string{utils.CreateByJobTemplate: utils.GetCreateByJobTemplateValue(flow.Name, jobFlow.Namespace)},
+							},
+							Spec:   jobTemplate.Spec,
+							Status: v1alpha1.JobStatus{},
+						}
+						if err = controllerutil.SetControllerReference(&jobFlow, job, r.Scheme); err != nil {
+							return err
+						}
+						if err = r.Create(ctx, job); err != nil {
+							if errors.IsAlreadyExists(err) {
+								break
+							}
+							return err
+						}
+						r.Recorder.Eventf(&jobFlow, corev1.EventTypeNormal, "Created", fmt.Sprintf("create a job named %v!", job.Name))
 					}
 				}
 				continue
@@ -261,6 +262,7 @@ func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflo
 	TerminatedJobs := make([]string, 0)
 	UnKnowJobs := make([]string, 0)
 	jobList := make([]string, 0)
+	state := new(jobflowv1alpha1.State)
 	for _, flow := range jobFlow.Spec.Flows {
 		jobList = append(jobList, getJobName(jobFlow.Name, flow.Name))
 	}
@@ -290,7 +292,25 @@ func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflo
 			TaskStatusCount: job.Status.TaskStatusCount,
 		}
 	}
+	if jobFlow.DeletionTimestamp != nil {
+		state.Phase = jobflowv1alpha1.Terminating
+	} else {
+		if len(jobList) != len(CompletedJobs) {
+			if len(FailedJobs) > 0 {
+				state.Phase = jobflowv1alpha1.Failed
+			} else if len(runningJobs) > 0 || len(CompletedJobs) > 0 {
+				state.Phase = jobflowv1alpha1.Running
+			} else {
+				state.Phase = jobflowv1alpha1.Pending
+			}
+		} else {
+			state.Phase = jobflowv1alpha1.Succeed
+		}
+	}
 
+	sort.Slice(jobList, func(i, j int) bool {
+		return jobList[i] < jobList[j]
+	})
 	jobFlowStatus := jobflowv1alpha1.JobFlowStatus{
 		PendingJobs:    pendingJobs,
 		RunningJobs:    runningJobs,
@@ -300,6 +320,7 @@ func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflo
 		UnKnowJobs:     UnKnowJobs,
 		JobList:        jobList,
 		Conditions:     conditions,
+		State:          *state,
 	}
 	return &jobFlowStatus, nil
 }
