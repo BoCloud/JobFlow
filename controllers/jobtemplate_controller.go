@@ -92,7 +92,7 @@ func (r *JobTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 	filterJobList := make([]v1alpha1.Job, 0)
 	for _, item := range jobList.Items {
-		if item.Annotations["createByJobTemplate"] == req.Name+"."+req.Namespace {
+		if item.Annotations[CreateByJobTemplate] == req.Name+"."+req.Namespace {
 			filterJobList = append(filterJobList, item)
 		}
 	}
@@ -109,6 +109,10 @@ func (r *JobTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	log.Log.Info("end jobTemplate Reconcile..........")
 	return scheduledResult, nil
 }
+
+const (
+	CreateByJobTemplate = "createByJobTemplate"
+)
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *JobTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error {
