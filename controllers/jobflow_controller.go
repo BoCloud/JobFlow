@@ -27,12 +27,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"sort"
@@ -67,9 +67,8 @@ type JobFlowReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *JobFlowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log.Log.Info("start jobFlow Reconcile..........")
-	_ = log.FromContext(ctx)
-	log.Log.Info(fmt.Sprintf("req.%v", req))
+	klog.Info("start jobFlow Reconcile..........")
+	klog.Info(fmt.Sprintf("req.%v", req))
 
 	scheduledResult := ctrl.Result{}
 	//根据namespace加载JobFlow
@@ -79,26 +78,26 @@ func (r *JobFlowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err != nil {
 		//If no instance is found, it will be returned directly
 		if errors.IsNotFound(err) {
-			log.Log.Info(fmt.Sprintf("not fount jobFlow : %v", req.Name))
+			klog.Info(fmt.Sprintf("not fount jobFlow : %v", req.Name))
 			return scheduledResult, nil
 		}
-		log.Log.Error(err, err.Error())
+		klog.Error(err, err.Error())
 		r.Recorder.Eventf(jobFlow, corev1.EventTypeWarning, "Created", err.Error())
 		return scheduledResult, err
 	}
 
 	//根据依赖顺序下发job。若下发的job没有依赖项，则直接下发。若有依赖则当所有依赖项达到条件后开始下发
 	if err = r.deployJob(ctx, *jobFlow); err != nil {
-		log.Log.Error(err, "")
+		klog.Error(err, "")
 		return scheduledResult, err
 	}
 
 	//更新status
 	if err = r.updateStatus(ctx, jobFlow); err != nil {
-		log.Log.Error(err, "更新jobFlow status错误")
+		klog.Error(err, "更新jobFlow status错误")
 		return scheduledResult, err
 	}
-	log.Log.Info("end  jobFlow   Reconcile........")
+	klog.Info("end  jobFlow   Reconcile........")
 	return scheduledResult, nil
 }
 
@@ -132,14 +131,14 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 						Name:      flow.Name,
 					}
 					if err = r.Get(ctx, namespacedNameTemplate, jobTemplate); err != nil {
-						log.Log.Error(err, "未查询到该jobTemplate！")
+						klog.Error(err, "未查询到该jobTemplate！")
 						return err
 					}
 					job = &v1alpha1.Job{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:        jobName,
 							Namespace:   jobFlow.Namespace,
-							Annotations: map[string]string{utils.CreateByJobTemplate: utils.GetCreateByJobTemplateValue(flow.Name, jobFlow.Namespace)},
+							Annotations: map[string]string{utils.CreateByJobTemplate: utils.GetCreateByJobTemplateValue(jobFlow.Namespace, flow.Name)},
 						},
 						Spec:   jobTemplate.Spec,
 						Status: v1alpha1.JobStatus{},
@@ -167,7 +166,7 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 						if err = r.Get(ctx, namespacedName, job); err != nil {
 							if err != nil {
 								if errors.IsNotFound(err) {
-									log.Log.Info(fmt.Sprintf("No %v Job found！", namespacedName.Name))
+									klog.Info(fmt.Sprintf("No %v Job found！", namespacedName.Name))
 									flag = false
 									break
 								}
@@ -187,14 +186,14 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 							Name:      flow.Name,
 						}
 						if err = r.Get(ctx, namespacedNameTemplate, jobTemplate); err != nil {
-							log.Log.Error(err, "未查询到该jobTemplate！")
+							klog.Error(err, "未查询到该jobTemplate！")
 							return err
 						}
 						job = &v1alpha1.Job{
 							ObjectMeta: metav1.ObjectMeta{
 								Name:        jobName,
 								Namespace:   jobFlow.Namespace,
-								Annotations: map[string]string{utils.CreateByJobTemplate: utils.GetCreateByJobTemplateValue(flow.Name, jobFlow.Namespace)},
+								Annotations: map[string]string{utils.CreateByJobTemplate: utils.GetCreateByJobTemplateValue(jobFlow.Namespace, flow.Name)},
 							},
 							Spec:   jobTemplate.Spec,
 							Status: v1alpha1.JobStatus{},
@@ -221,7 +220,7 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 
 //更新status
 func (r *JobFlowReconciler) updateStatus(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow) error {
-	log.Log.Info(fmt.Sprintf("开始更新jobFlow status! jobFlowName: %v, jobFlowNamespace: %v ", jobFlow.Name, jobFlow.Namespace))
+	klog.Info(fmt.Sprintf("开始更新jobFlow status! jobFlowName: %v, jobFlowNamespace: %v ", jobFlow.Name, jobFlow.Namespace))
 	jobFlowStatus, err := r.getAllJobStatus(ctx, jobFlow)
 	if err != nil {
 		return err
@@ -243,7 +242,7 @@ func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflo
 	allJobList := new(v1alpha1.JobList)
 	err := r.List(ctx, allJobList)
 	if err != nil {
-		log.Log.Error(err, "")
+		klog.Error(err, "")
 		return nil, err
 	}
 	jobListRes := make([]v1alpha1.Job, 0)
@@ -337,7 +336,7 @@ func (r *JobFlowReconciler) jobUpdateHandler(e event.UpdateEvent, q workqueue.Ra
 	references := e.ObjectOld.GetOwnerReferences()
 	for _, owner := range references {
 		if owner.Kind == "JobFlow" && strings.Contains(owner.APIVersion, "volcano") {
-			log.Log.Info(fmt.Sprintf("监听到job的更新事件！jobName: %v, jobFlowName: %v, nameSpace: %v", e.ObjectOld.GetName(), owner.Name, e.ObjectOld.GetNamespace()))
+			klog.Info(fmt.Sprintf("监听到job的更新事件！jobName: %v, jobFlowName: %v, nameSpace: %v", e.ObjectOld.GetName(), owner.Name, e.ObjectOld.GetNamespace()))
 			q.AddRateLimited(reconcile.Request{
 				NamespacedName: types.NamespacedName{Name: owner.Name, Namespace: e.ObjectOld.GetNamespace()},
 			})

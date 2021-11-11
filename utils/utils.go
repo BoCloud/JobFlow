@@ -1,7 +1,7 @@
 package utils
 
-const CreateByJobTemplate = "createByJobTemplate"
+const CreateByJobTemplate = "volcano.sh/createByJobTemplate"
 
-func GetCreateByJobTemplateValue(name, namespace string) string {
-	return name + "." + namespace
+func GetCreateByJobTemplateValue(namespace, name string) string {
+	return namespace + "." + name
 }

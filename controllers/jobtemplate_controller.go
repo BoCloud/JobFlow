@@ -21,12 +21,14 @@ import (
 	"fmt"
 	batchv1alpha1 "jobflow/api/v1alpha1"
 	jobflowv1alpha1 "jobflow/api/v1alpha1"
+	"jobflow/utils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -63,9 +65,9 @@ type JobTemplateReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *JobTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log.Log.Info("start jobTemplate Reconcile..........")
+	klog.Info("start jobTemplate Reconcile..........")
 	_ = log.FromContext(ctx)
-	log.Log.Info(fmt.Sprintf("event for jobTemplate: %v", req.Name))
+	klog.Info(fmt.Sprintf("event for jobTemplate: %v", req.Name))
 	// your logic here
 	scheduledResult := ctrl.Result{}
 
@@ -76,10 +78,10 @@ func (r *JobTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	if err != nil {
 		//If no instance is found, it will be returned directly
 		if errors.IsNotFound(err) {
-			log.Log.Info(fmt.Sprintf("not fount jobTemplate : %v", req.Name))
+			klog.Info(fmt.Sprintf("not fount jobTemplate : %v", req.Name))
 			return scheduledResult, nil
 		}
-		log.Log.Error(err, err.Error())
+		klog.Error(err, err.Error())
 		r.Recorder.Eventf(jobTemplate, corev1.EventTypeWarning, "Created", err.Error())
 		return scheduledResult, err
 	}
@@ -87,12 +89,12 @@ func (r *JobTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	jobList := &v1alpha1.JobList{}
 	err = r.List(ctx, jobList)
 	if err != nil {
-		log.Log.Error(err, "")
+		klog.Error(err, "")
 		return scheduledResult, err
 	}
 	filterJobList := make([]v1alpha1.Job, 0)
 	for _, item := range jobList.Items {
-		if item.Annotations[CreateByJobTemplate] == req.Name+"."+req.Namespace {
+		if item.Annotations[utils.CreateByJobTemplate] == req.Name+"."+req.Namespace {
 			filterJobList = append(filterJobList, item)
 		}
 	}
@@ -103,16 +105,12 @@ func (r *JobTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	jobTemplate.Status.JobRelyOnList = jobListName
 	//更新
 	if err := r.Status().Update(ctx, jobTemplate); err != nil {
-		log.Log.Error(err, "update error!")
+		klog.Error(err, "update error!")
 		return scheduledResult, err
 	}
-	log.Log.Info("end jobTemplate Reconcile..........")
+	klog.Info("end jobTemplate Reconcile..........")
 	return scheduledResult, nil
 }
-
-const (
-	CreateByJobTemplate = "createByJobTemplate"
-)
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *JobTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error {

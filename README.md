@@ -358,3 +358,13 @@ Pending: flow中包不含处于Running状态vcjob。
 4. 根据vcjob依赖下发vcjob。遍历判断非入口的vcjob的依赖是否满足条件，若满足则进行下发。
 5. 将当前的状态信息写入jobflow的status。
 6. 监听jobflow下发的vcjob。
+
+## 部署
+```
+make build   #生成二进制执行文件./bin/manager
+
+make docker-build     #构建镜像
+
+kubectl apply -f ./deploy/     #部署
+
+```
