@@ -94,7 +94,7 @@ func (r *JobTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 	filterJobList := make([]v1alpha1.Job, 0)
 	for _, item := range jobList.Items {
-		if item.Annotations[utils.CreateByJobTemplate] == req.Name+"."+req.Namespace {
+		if item.Annotations[utils.CreateByJobTemplate] == utils.GetCreateByJobTemplateValue(req.Namespace, req.Name) {
 			filterJobList = append(filterJobList, item)
 		}
 	}
