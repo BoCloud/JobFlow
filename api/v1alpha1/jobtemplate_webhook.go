@@ -52,11 +52,8 @@ var _ webhook.Defaulter = &JobTemplate{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *JobTemplate) Default() {
 	jobtemplatelog.Info("default", "name", r.Name)
-
-	// TODO(user): fill in your defaulting logic.
 }
 
-// TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 // +kubebuilder:webhook:verbs=create;update,path=/validate-batch-volcano-sh-v1alpha1-jobtemplate,mutating=false,failurePolicy=fail,sideEffects=None,groups=batch.volcano.sh,resources=jobtemplates,versions=v1alpha1,name=vjobtemplate.kb.io,admissionReviewVersions={v1,v1alpha1}
 
 var _ webhook.Validator = &JobTemplate{}

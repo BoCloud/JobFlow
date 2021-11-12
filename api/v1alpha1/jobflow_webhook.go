@@ -43,11 +43,8 @@ var _ webhook.Defaulter = &JobFlow{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *JobFlow) Default() {
 	jobflowlog.Info("default", "name", r.Name)
-
-	// TODO(user): fill in your defaulting logic.
 }
 
-// TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 // +kubebuilder:webhook:verbs=create;update,path=/validate-batch-volcano-sh-v1alpha1-jobflow,mutating=false,failurePolicy=fail,sideEffects=None,groups=batch.volcano.sh,resources=jobflows,versions=v1alpha1,name=vjobflow.kb.io,admissionReviewVersions={v1,v1alpha1}
 
 var _ webhook.Validator = &JobFlow{}
@@ -101,15 +98,11 @@ func (j *JobFlow) ValidateCreate() error {
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *JobFlow) ValidateUpdate(old runtime.Object) error {
 	jobflowlog.Info("validate update", "name", r.Name)
-
-	// TODO(user): fill in your validation logic upon object update.
 	return nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *JobFlow) ValidateDelete() error {
 	jobflowlog.Info("validate delete", "name", r.Name)
-
-	// TODO(user): fill in your validation logic upon object deletion.
 	return nil
 }
