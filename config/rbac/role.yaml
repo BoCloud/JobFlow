@@ -1,0 +1,87 @@
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - batch.volcano.sh
+  resources:
+  - jobflows
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - batch.volcano.sh
+  resources:
+  - jobflows/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - batch.volcano.sh
+  resources:
+  - jobflows/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - batch.volcano.sh
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - batch.volcano.sh
+  resources:
+  - jobs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - batch.volcano.sh
+  resources:
+  - jobtemplates
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - batch.volcano.sh
+  resources:
+  - jobtemplates/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - batch.volcano.sh
+  resources:
+  - jobtemplates/status
+  verbs:
+  - get
+  - patch
+  - update
