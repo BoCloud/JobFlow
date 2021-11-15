@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: jobflow-serving-cert
+  namespace: jobflow-system
+spec:
+  dnsNames:
+  - jobflow-webhook-service.jobflow-system.svc
+  - jobflow-webhook-service.jobflow-system.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: jobflow-selfsigned-issuer
+  secretName: webhook-server-cert

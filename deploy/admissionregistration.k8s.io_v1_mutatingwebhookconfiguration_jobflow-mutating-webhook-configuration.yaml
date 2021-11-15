@@ -1,0 +1,49 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: jobflow-system/jobflow-serving-cert
+  name: jobflow-mutating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  - v1alpha1
+  clientConfig:
+    service:
+      name: jobflow-webhook-service
+      namespace: jobflow-system
+      path: /mutate-batch-volcano-sh-v1alpha1-jobflow
+  failurePolicy: Fail
+  name: mjobflow.kb.io
+  rules:
+  - apiGroups:
+    - batch.volcano.sh
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - jobflows
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1alpha1
+  clientConfig:
+    service:
+      name: jobflow-webhook-service
+      namespace: jobflow-system
+      path: /mutate-batch-volcano-sh-v1alpha1-jobtemplate
+  failurePolicy: Fail
+  name: mjobtemplate.kb.io
+  rules:
+  - apiGroups:
+    - batch.volcano.sh
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - jobtemplates
+  sideEffects: None

@@ -11,6 +11,8 @@ spec:
     kind: JobFlow
     listKind: JobFlowList
     plural: jobflows
+    shortNames:
+    - jf
     singular: jobflow
   scope: Namespaced
   versions:

@@ -9,9 +9,9 @@ data:
       bindAddress: 127.0.0.1:8080
     webhook:
       port: 9443
-    leaderElection:
-      leaderElect: true
-      resourceName: 1b1c5f74.volcano.sh
+    #leaderElection:
+    #  leaderElect: true
+    #  resourceName: 1b1c5f74.volcano.sh
 kind: ConfigMap
 metadata:
   name: jobflow-manager-config

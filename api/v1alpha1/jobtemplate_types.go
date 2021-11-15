@@ -48,6 +48,7 @@ type JobRelyOnList struct {
 }
 
 //+kubebuilder:object:root=true
+// +kubebuilder:resource:path=jobtemplates,shortName=jt
 //+kubebuilder:subresource:status
 
 // JobTemplate is the Schema for the jobtemplates API
