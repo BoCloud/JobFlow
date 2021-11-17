@@ -2,6 +2,6 @@ apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
   name: jobflow-selfsigned-issuer
-  namespace: jobflow-system
+  namespace: kube-system
 spec:
   selfSigned: {}

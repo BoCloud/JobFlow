@@ -39,12 +39,7 @@ type JobTemplateStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	//描述了根据jobTemplate生成的jobList
-	JobRelyOnList []string `json:"jobRelyOnList,omitempty"`
-}
-
-type JobRelyOnList struct {
-	Name      string `json:"name,omitempty"`
-	NameSpace string `json:"nameSpace,omitempty"`
+	JobDependsOnList []string `json:"jobDependsOnList,omitempty"`
 }
 
 //+kubebuilder:object:root=true

@@ -4,7 +4,7 @@ metadata:
   labels:
     control-plane: controller-manager
   name: jobflow-controller-manager
-  namespace: jobflow-system
+  namespace: kube-system
 spec:
   replicas: 1
   selector:
@@ -19,6 +19,7 @@ spec:
       - args:
         - --health-probe-bind-address=:8081
         - --metrics-bind-address=127.0.0.1:8080
+        - --leader-elect
         command:
         - /manager
         image: jobflow:v0.0.1

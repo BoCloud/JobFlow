@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"fmt"
+
 	"jobflow/utils"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -26,7 +27,7 @@ import (
 )
 
 // log is for logging in this package.
-var jobflowlog = logf.Log.WithName("jobflow-resource")
+var jobFlowLog = logf.Log.WithName("jobFlow-resource")
 
 func (r *JobFlow) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -42,7 +43,7 @@ var _ webhook.Defaulter = &JobFlow{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *JobFlow) Default() {
-	jobflowlog.Info("default", "name", r.Name)
+	jobFlowLog.Info("default", "name", r.Name)
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-batch-volcano-sh-v1alpha1-jobflow,mutating=false,failurePolicy=fail,sideEffects=None,groups=batch.volcano.sh,resources=jobflows,versions=v1alpha1,name=vjobflow.kb.io,admissionReviewVersions={v1,v1alpha1}
@@ -50,9 +51,9 @@ func (r *JobFlow) Default() {
 var _ webhook.Validator = &JobFlow{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (j *JobFlow) ValidateCreate() error {
-	jobflowlog.Info("validate create", "name", j.Name)
-	flows := j.Spec.Flows
+func (r *JobFlow) ValidateCreate() error {
+	jobFlowLog.Info("validate create", "name", r.Name)
+	flows := r.Spec.Flows
 	var msg string
 	templateNames := map[string][]string{}
 	vertexMap := make(map[string]*utils.Vertex)
@@ -65,7 +66,7 @@ func (j *JobFlow) ValidateCreate() error {
 			duplicateTemplate = true
 			break
 		} else {
-			templateNames[template.Name] = template.DependsOn.Target
+			templateNames[template.Name] = template.DependsOn.Targets
 			vertexMap[template.Name] = &utils.Vertex{Key: template.Name}
 		}
 	}
@@ -97,12 +98,12 @@ func (j *JobFlow) ValidateCreate() error {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *JobFlow) ValidateUpdate(old runtime.Object) error {
-	jobflowlog.Info("validate update", "name", r.Name)
+	jobFlowLog.Info("validate update", "name", r.Name)
 	return nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *JobFlow) ValidateDelete() error {
-	jobflowlog.Info("validate delete", "name", r.Name)
+	jobFlowLog.Info("validate delete", "name", r.Name)
 	return nil
 }

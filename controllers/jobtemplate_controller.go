@@ -33,7 +33,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"strings"
@@ -66,7 +65,6 @@ type JobTemplateReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *JobTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	klog.Info("start jobTemplate Reconcile..........")
-	_ = log.FromContext(ctx)
 	klog.Info(fmt.Sprintf("event for jobTemplate: %v", req.Name))
 	// your logic here
 	scheduledResult := ctrl.Result{}
@@ -94,15 +92,18 @@ func (r *JobTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 	filterJobList := make([]v1alpha1.Job, 0)
 	for _, item := range jobList.Items {
-		if item.Annotations[utils.CreateByJobTemplate] == utils.GetCreateByJobTemplateValue(req.Namespace, req.Name) {
+		if item.Annotations[utils.CreateByJobTemplate] == utils.GetConnectionOfJobAndJobTemplate(req.Namespace, req.Name) {
 			filterJobList = append(filterJobList, item)
 		}
+	}
+	if len(filterJobList) == 0 {
+		return scheduledResult, err
 	}
 	jobListName := make([]string, 0)
 	for _, job := range filterJobList {
 		jobListName = append(jobListName, job.Name)
 	}
-	jobTemplate.Status.JobRelyOnList = jobListName
+	jobTemplate.Status.JobDependsOnList = jobListName
 	//更新
 	if err := r.Status().Update(ctx, jobTemplate); err != nil {
 		klog.Error(err, "update error!")
@@ -121,9 +122,9 @@ func (r *JobTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func jobCreateHandler(e event.CreateEvent, w workqueue.RateLimitingInterface) {
-	if e.Object.GetAnnotations()["createByJobTemplate"] != "" {
-		nameNamespace := strings.Split(e.Object.GetAnnotations()["createByJobTemplate"], ".")
-		name, namespace := nameNamespace[0], nameNamespace[1]
+	if e.Object.GetAnnotations()[utils.CreateByJobTemplate] != "" {
+		nameNamespace := strings.Split(e.Object.GetAnnotations()[utils.CreateByJobTemplate], ".")
+		namespace, name := nameNamespace[0], nameNamespace[1]
 		w.AddRateLimited(reconcile.Request{NamespacedName: types.NamespacedName{Name: name, Namespace: namespace}})
 	}
 }

@@ -35,11 +35,11 @@ import (
 )
 
 // log is for logging in this package.
-var jobtemplatelog = logf.Log.WithName("jobtemplate-resource")
+var jobTemplateLog = logf.Log.WithName("jobtemplate-resource")
 
-func (r *JobTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (job *JobTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+		For(job).
 		Complete()
 }
 
@@ -50,8 +50,8 @@ func (r *JobTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Defaulter = &JobTemplate{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
-func (r *JobTemplate) Default() {
-	jobtemplatelog.Info("default", "name", r.Name)
+func (job *JobTemplate) Default() {
+	jobTemplateLog.Info("default", "name", job.Name)
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-batch-volcano-sh-v1alpha1-jobtemplate,mutating=false,failurePolicy=fail,sideEffects=None,groups=batch.volcano.sh,resources=jobtemplates,versions=v1alpha1,name=vjobtemplate.kb.io,admissionReviewVersions={v1,v1alpha1}
@@ -60,7 +60,7 @@ var _ webhook.Validator = &JobTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (job *JobTemplate) ValidateCreate() error {
-	jobtemplatelog.Info("validate create", "name", job.Name)
+	jobTemplateLog.Info("validate create", "name", job.Name)
 
 	var msg string
 	taskNames := map[string]string{}
@@ -135,14 +135,14 @@ func (job *JobTemplate) ValidateCreate() error {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (job *JobTemplate) ValidateUpdate(old runtime.Object) error {
-	jobtemplatelog.Info("validate update", "name", job.Name)
+	jobTemplateLog.Info("validate update", "name", job.Name)
 
 	return fmt.Errorf("JobTemplate does not support update operations")
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (job *JobTemplate) ValidateDelete() error {
-	jobtemplatelog.Info("validate delete", "name", job.Name)
+	jobTemplateLog.Info("validate delete", "name", job.Name)
 
 	// TODO(user): fill in your validation logic upon object deletion.
 	return nil

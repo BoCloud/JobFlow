@@ -3992,7 +3992,7 @@ spec:
           status:
             description: JobTemplateStatus defines the observed state of JobTemplate
             properties:
-              jobRelyOnList:
+              jobDependsOnList:
                 description: 描述了根据jobTemplate生成的jobList
                 items:
                   type: string

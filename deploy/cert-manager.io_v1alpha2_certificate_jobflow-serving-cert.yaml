@@ -2,11 +2,11 @@ apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
   name: jobflow-serving-cert
-  namespace: jobflow-system
+  namespace: kube-system
 spec:
   dnsNames:
-  - jobflow-webhook-service.jobflow-system.svc
-  - jobflow-webhook-service.jobflow-system.svc.cluster.local
+  - jobflow-webhook-service.kube-system.svc
+  - jobflow-webhook-service.kube-system.svc.cluster.local
   issuerRef:
     kind: Issuer
     name: jobflow-selfsigned-issuer

@@ -35,7 +35,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"sort"
 	"strings"
 	"time"
 	"volcano.sh/apis/pkg/apis/batch/v1alpha1"
@@ -85,6 +84,14 @@ func (r *JobFlowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		r.Recorder.Eventf(jobFlow, corev1.EventTypeWarning, "Created", err.Error())
 		return scheduledResult, err
 	}
+	//JobRetainPolicy 判断是否需要删除创建的job
+	if jobFlow.Spec.JobRetainPolicy == jobflowv1alpha1.Delete && jobFlow.Status.State.Phase == jobflowv1alpha1.Succeed {
+		if err := r.deleteAllJobsCreateByJobFlow(ctx, jobFlow); err != nil {
+			klog.Error(err, "删除下发的job错误！")
+			return scheduledResult, err
+		}
+		return scheduledResult, err
+	}
 
 	//根据依赖顺序下发job。若下发的job没有依赖项，则直接下发。若有依赖则当所有依赖项达到条件后开始下发
 	if err = r.deployJob(ctx, *jobFlow); err != nil {
@@ -97,7 +104,7 @@ func (r *JobFlowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		klog.Error(err, "更新jobFlow status错误")
 		return scheduledResult, err
 	}
-	klog.Info("end  jobFlow   Reconcile........")
+	klog.Info("end jobFlow Reconcile........")
 	return scheduledResult, nil
 }
 
@@ -123,7 +130,7 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 		if err := r.Get(ctx, namespacedNameJob, job); err != nil {
 			if errors.IsNotFound(err) {
 				//没有下发则判断该vcjob的依赖项是否符合要求
-				if len(flow.DependsOn.Target) == 0 {
+				if len(flow.DependsOn.Targets) == 0 {
 					//加载对应的jobTemplate
 					jobTemplate := &jobflowv1alpha1.JobTemplate{}
 					namespacedNameTemplate := types.NamespacedName{
@@ -138,7 +145,7 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 						ObjectMeta: metav1.ObjectMeta{
 							Name:        jobName,
 							Namespace:   jobFlow.Namespace,
-							Annotations: map[string]string{utils.CreateByJobTemplate: utils.GetCreateByJobTemplateValue(jobFlow.Namespace, flow.Name)},
+							Annotations: map[string]string{utils.CreateByJobTemplate: utils.GetConnectionOfJobAndJobTemplate(jobFlow.Namespace, flow.Name)},
 						},
 						Spec:   jobTemplate.Spec,
 						Status: v1alpha1.JobStatus{},
@@ -156,7 +163,7 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 				} else {
 					//查询依赖项时候符合要求
 					flag := true
-					for _, targetName := range flow.DependsOn.Target {
+					for _, targetName := range flow.DependsOn.Targets {
 						job = &v1alpha1.Job{}
 						targetJobName := getJobName(jobFlow.Name, targetName)
 						namespacedName := types.NamespacedName{
@@ -193,7 +200,7 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 							ObjectMeta: metav1.ObjectMeta{
 								Name:        jobName,
 								Namespace:   jobFlow.Namespace,
-								Annotations: map[string]string{utils.CreateByJobTemplate: utils.GetCreateByJobTemplateValue(jobFlow.Namespace, flow.Name)},
+								Annotations: map[string]string{utils.CreateByJobTemplate: utils.GetConnectionOfJobAndJobTemplate(jobFlow.Namespace, flow.Name)},
 							},
 							Spec:   jobTemplate.Spec,
 							Status: v1alpha1.JobStatus{},
@@ -261,6 +268,7 @@ func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflo
 	TerminatedJobs := make([]string, 0)
 	UnKnowJobs := make([]string, 0)
 	jobList := make([]string, 0)
+
 	state := new(jobflowv1alpha1.State)
 	for _, flow := range jobFlow.Spec.Flows {
 		jobList = append(jobList, getJobName(jobFlow.Name, flow.Name))
@@ -286,9 +294,69 @@ func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflo
 		}
 		conditions[job.Name] = jobflowv1alpha1.Condition{
 			Phase:           job.Status.State.Phase,
-			CreateTime:      job.CreationTimestamp,
+			CreateTimestamp: job.CreationTimestamp,
 			RunningDuration: job.Status.RunningDuration,
 			TaskStatusCount: job.Status.TaskStatusCount,
+		}
+
+	}
+	jobStatusList := make([]jobflowv1alpha1.JobStatus, 0)
+	if jobFlow.Status.JobStatusList != nil {
+		jobStatusList = jobFlow.Status.JobStatusList
+	}
+	for _, job := range jobListRes {
+		runningHistories := make([]jobflowv1alpha1.JobRunningHistory, 0)
+		flag := true
+		for _, jobStatusGet := range jobStatusList {
+			if jobStatusGet.Name == job.Name {
+				flag = false
+				if jobStatusGet.RunningHistories != nil {
+					runningHistories = jobStatusGet.RunningHistories
+					//状态变化
+					if runningHistories[len(runningHistories)-1].State != job.Status.State.Phase {
+						runningHistories[len(runningHistories)-1].EndTimestamp = metav1.Time{
+							Time: time.Now(),
+						}
+						runningHistories = append(runningHistories, jobflowv1alpha1.JobRunningHistory{
+							StartTimestamp: metav1.Time{Time: time.Now()},
+							EndTimestamp:   metav1.Time{},
+							State:          job.Status.State.Phase,
+						})
+					}
+				}
+			}
+		}
+		if flag && job.Status.State.Phase != "" {
+			runningHistories = append(runningHistories, jobflowv1alpha1.JobRunningHistory{
+				StartTimestamp: metav1.Time{
+					Time: time.Now(),
+				},
+				EndTimestamp: metav1.Time{},
+				State:        job.Status.State.Phase,
+			})
+		}
+		endTimeStamp := metav1.Time{}
+		if job.Status.RunningDuration != nil {
+			endTimeStamp = job.CreationTimestamp
+			endTimeStamp = metav1.Time{Time: endTimeStamp.Add(job.Status.RunningDuration.Duration)}
+		}
+		jobStatus := jobflowv1alpha1.JobStatus{
+			Name:             job.Name,
+			State:            job.Status.State.Phase,
+			StartTimestamp:   job.CreationTimestamp,
+			EndTimestamp:     endTimeStamp,
+			RestartCount:     job.Status.RetryCount,
+			RunningHistories: runningHistories,
+		}
+		jobFlag := true
+		for i := range jobStatusList {
+			if jobStatusList[i].Name == jobStatus.Name {
+				jobFlag = false
+				jobStatusList[i] = jobStatus
+			}
+		}
+		if jobFlag {
+			jobStatusList = append(jobStatusList, jobStatus)
 		}
 	}
 	if jobFlow.DeletionTimestamp != nil {
@@ -307,9 +375,6 @@ func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflo
 		}
 	}
 
-	sort.Slice(jobList, func(i, j int) bool {
-		return jobList[i] < jobList[j]
-	})
 	jobFlowStatus := jobflowv1alpha1.JobFlowStatus{
 		PendingJobs:    pendingJobs,
 		RunningJobs:    runningJobs,
@@ -317,11 +382,30 @@ func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflo
 		CompletedJobs:  CompletedJobs,
 		TerminatedJobs: TerminatedJobs,
 		UnKnowJobs:     UnKnowJobs,
-		JobList:        jobList,
+		JobStatusList:  jobStatusList,
 		Conditions:     conditions,
 		State:          *state,
 	}
 	return &jobFlowStatus, nil
+}
+
+func (r *JobFlowReconciler) deleteAllJobsCreateByJobFlow(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow) error {
+	jobList := new(v1alpha1.JobList)
+	if err := r.List(ctx, jobList, client.InNamespace(jobFlow.Namespace)); err != nil {
+		return err
+	}
+	for _, item := range jobList.Items {
+		if len(item.OwnerReferences) > 0 {
+			for _, reference := range item.OwnerReferences {
+				if reference.Kind == jobFlow.Kind && reference.Name == jobFlow.Name {
+					if err := r.Delete(ctx, &item); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

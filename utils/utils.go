@@ -2,6 +2,8 @@ package utils
 
 const CreateByJobTemplate = "volcano.sh/createByJobTemplate"
 
-func GetCreateByJobTemplateValue(namespace, name string) string {
+// vcjob对jobTemplate引用的annotations的value值
+
+func GetConnectionOfJobAndJobTemplate(namespace, name string) string {
 	return namespace + "." + name
 }

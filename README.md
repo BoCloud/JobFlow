@@ -259,22 +259,23 @@ metadata:
   namespace: default
   creationTimestamp: "2021-10-18T07:01:24Z"
 spec:
+  JobRetainPolicy: retain/delete   jobflow运行结束后，保留产生的job. 否则删除。
   flows:
     - name: A
     - name: B
       dependsOn:
-        target: [‘A’]
+        targets: [‘A’]
     - name: C
       dependsOn:
-        target: [‘B’]
+        targets: [‘B’]
     - name: D
       dependsOn:
-        target: [‘B’]
+        targets: [‘B’]
     - name: E
       dependsOn:
-        target: [‘C’,‘D’]
+        targets: [‘C’,‘D’]
 status:
-  jobList: []
+  jobStatusList: []
   pendingJobs: []
   runningJobs: []
   failedJobs: []
@@ -321,6 +322,26 @@ status:
 
 ```
 
+jobStatusList 
+
+```
+type JobStatus struct {
+    Name string
+    State string // running/failed
+    StartTimestamp Time
+    EndTimestamp Time
+    RestartCount int
+    RunningHistories []JobRunningHistory
+}
+
+type JobRunningHistory struct {
+    StartTimestamp Time
+    EndTimestamp time
+    State string // failded/succeeded ....
+}
+
+```
+
 根据JobFlow创建的名称遵循JobFlowName-JobTemplateName,
 
 ### JobFlow解释
@@ -333,7 +354,7 @@ status:
 - metadata: 描述JobFlow的元数据信息
 - flow：定义了vcjob之间的依赖关系，没有依赖项的vcjob即位入口。支持多入口和多出口。当前只支持了complete依赖
 - depends.target: 指定了依赖的vcjob
-- jobList 拆分出来的所有vcjob
+- jobStatusList 拆分出来的所有vcjob的状态信息
 - successfulJobList 已经成功complete的vcjob
 - conditions 用于描述所有vcjob当前的状态，创建时间，完成时间以及信息，该处的vcjob状态额外增加waiting状态用于描述依赖项没有达到要求的vcjob。
 - phase JobFlow的状态

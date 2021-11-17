@@ -4,7 +4,7 @@ metadata:
   labels:
     control-plane: controller-manager
   name: jobflow-controller-manager-metrics-service
-  namespace: jobflow-system
+  namespace: kube-system
 spec:
   ports:
   - name: https

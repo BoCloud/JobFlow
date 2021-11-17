@@ -31,7 +31,8 @@ type JobFlowSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of JobFlow. Edit jobflow_types.go to remove/update
-	Flows []Flow `json:"flows,omitempty"`
+	Flows           []Flow `json:"flows,omitempty"`
+	JobRetainPolicy string `json:"jobRetainPolicy,omitempty"`
 }
 
 // Flow defines the dependent of jobs
@@ -41,8 +42,8 @@ type Flow struct {
 }
 
 type DependsOn struct {
-	Target []string `json:"target,omitempty"`
-	Probe  *Probe   `json:"probe,omitempty"`
+	Targets []string `json:"targets,omitempty"`
+	Probe   *Probe   `json:"probe,omitempty"`
 }
 
 type Probe struct {
@@ -79,9 +80,24 @@ type JobFlowStatus struct {
 	CompletedJobs  []string             `json:"completedJobs,omitempty"`
 	TerminatedJobs []string             `json:"terminatedJobs,omitempty"`
 	UnKnowJobs     []string             `json:"unKnowJobs,omitempty"`
-	JobList        []string             `json:"jobList,omitempty"`
+	JobStatusList  []JobStatus          `json:"jobStatusList,omitempty"`
 	Conditions     map[string]Condition `json:"conditions,omitempty"`
 	State          State                `json:"state,omitempty"`
+}
+
+type JobStatus struct {
+	Name             string              `json:"name,omitempty"`
+	State            v1alpha1.JobPhase   `json:"state,omitempty"`
+	StartTimestamp   metav1.Time         `json:"startTimestamp,omitempty"`
+	EndTimestamp     metav1.Time         `json:"endTimestamp,omitempty"`
+	RestartCount     int32               `json:"restartCount,omitempty"`
+	RunningHistories []JobRunningHistory `json:"runningHistories,omitempty"`
+}
+
+type JobRunningHistory struct {
+	StartTimestamp metav1.Time       `json:"startTimestamp,omitempty"`
+	EndTimestamp   metav1.Time       `json:"endTimestamp,omitempty"`
+	State          v1alpha1.JobPhase `json:"state,omitempty"`
 }
 
 type State struct {
@@ -89,6 +105,11 @@ type State struct {
 }
 
 type Phase string
+
+const (
+	Retain = "retain"
+	Delete = "delete"
+)
 
 const (
 	Succeed     Phase = "Succeed"
@@ -100,7 +121,7 @@ const (
 
 type Condition struct {
 	Phase           v1alpha1.JobPhase             `json:"phase,omitempty"`
-	CreateTime      metav1.Time                   `json:"createTime,omitempty"`
+	CreateTimestamp metav1.Time                   `json:"createTime,omitempty"`
 	RunningDuration *metav1.Duration              `json:"runningDuration,omitempty"`
 	TaskStatusCount map[string]v1alpha1.TaskState `json:"taskStatusCount,omitempty"`
 }

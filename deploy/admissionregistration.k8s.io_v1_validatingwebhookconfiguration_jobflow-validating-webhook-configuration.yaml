@@ -2,7 +2,7 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: jobflow-system/jobflow-serving-cert
+    cert-manager.io/inject-ca-from: kube-system/jobflow-serving-cert
   name: jobflow-validating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
@@ -11,7 +11,7 @@ webhooks:
   clientConfig:
     service:
       name: jobflow-webhook-service
-      namespace: jobflow-system
+      namespace: kube-system
       path: /validate-batch-volcano-sh-v1alpha1-jobflow
   failurePolicy: Fail
   name: vjobflow.kb.io
@@ -32,7 +32,7 @@ webhooks:
   clientConfig:
     service:
       name: jobflow-webhook-service
-      namespace: jobflow-system
+      namespace: kube-system
       path: /validate-batch-volcano-sh-v1alpha1-jobtemplate
   failurePolicy: Fail
   name: vjobtemplate.kb.io

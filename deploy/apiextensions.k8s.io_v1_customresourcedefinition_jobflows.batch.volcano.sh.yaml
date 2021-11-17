@@ -93,7 +93,7 @@ spec:
                                 type: object
                               type: array
                           type: object
-                        target:
+                        targets:
                           items:
                             type: string
                           type: array
@@ -104,6 +104,8 @@ spec:
                   - name
                   type: object
                 type: array
+              jobRetainPolicy:
+                type: string
             type: object
           status:
             description: JobFlowStatus defines the observed state of JobFlow
@@ -141,9 +143,38 @@ spec:
                 items:
                   type: string
                 type: array
-              jobList:
+              jobStatusList:
                 items:
-                  type: string
+                  properties:
+                    endTimestamp:
+                      format: date-time
+                      type: string
+                    name:
+                      type: string
+                    restartCount:
+                      format: int32
+                      type: integer
+                    runningHistories:
+                      items:
+                        properties:
+                          endTimestamp:
+                            format: date-time
+                            type: string
+                          startTimestamp:
+                            format: date-time
+                            type: string
+                          state:
+                            description: JobPhase defines the phase of the job.
+                            type: string
+                        type: object
+                      type: array
+                    startTimestamp:
+                      format: date-time
+                      type: string
+                    state:
+                      description: JobPhase defines the phase of the job.
+                      type: string
+                  type: object
                 type: array
               pendingJobs:
                 items:
