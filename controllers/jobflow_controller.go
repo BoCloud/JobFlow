@@ -19,7 +19,9 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"jobflow/utils"
+	"strings"
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,11 +37,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"strings"
-	"time"
 	"volcano.sh/apis/pkg/apis/batch/v1alpha1"
 
 	jobflowv1alpha1 "jobflow/api/v1alpha1"
+	"jobflow/utils"
 )
 
 // JobFlowReconciler reconciles a JobFlow object
