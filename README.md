@@ -368,8 +368,23 @@ Pending: flow中包不含处于Running状态vcjob。
 
 
 ### JobFlow webhook 校验
+```
+创建JobFlow校验
+1、JobFlow依赖关系中不能有同名template
+  如：A->B->A->C  A出现了两次
+2、JobFlow中不能出现闭环
+  如：A -> B  ->  C
+          ^     /
+          |    /
+          < - D
 
-对JobFlow的crd字段进行校验和默认值设置。
+创建JobTemplte校验（遵循vcjob参数规范）
+如：job minAvailable 必须大于等于零
+   job maxRetry 必须大于等于零
+   tasks不能为空，不能有同名task
+   task副本数不能小于零
+   task minAvailable不能大于task replicas...
+```
 
 ### JobFlow controller
 

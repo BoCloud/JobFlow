@@ -146,7 +146,6 @@ func (job *JobTemplate) ValidateUpdate(old runtime.Object) error {
 func (job *JobTemplate) ValidateDelete() error {
 	jobTemplateLog.Info("validate delete", "name", job.Name)
 
-	// TODO(user): fill in your validation logic upon object deletion.
 	return nil
 }
 
