@@ -380,6 +380,11 @@ Pending: flow中包不含处于Running状态vcjob。
 5. 将当前的状态信息写入jobflow的status。
 6. 监听jobflow下发的vcjob。
 
+## 开发
+通过make generateDeployYaml 生成部署文件到deploy目录下
+
+需要更改yaml文件时需要更改kustomize相关配置模板和patch文件，最后通过make generateDeployYaml生成对应yaml文件。不建议直接修改deploy下的yaml文件
+
 ## 部署
 ```
 make build   #生成二进制执行文件./bin/manager
