@@ -59,19 +59,19 @@ func (r *JobFlow) ValidateCreate() error {
 	templateNames := map[string][]string{}
 	vertexMap := make(map[string]*utils.Vertex)
 	dag := &utils.DAG{}
-	var duplicateTemplate = false
+	var duplicatedTemplate = false
 	for _, template := range flows {
 		if _, found := templateNames[template.Name]; found {
 			// duplicate task name
 			msg += fmt.Sprintf(" duplicated template name %s;", template.Name)
-			duplicateTemplate = true
+			duplicatedTemplate = true
 			break
 		} else {
 			templateNames[template.Name] = template.DependsOn.Targets
 			vertexMap[template.Name] = &utils.Vertex{Key: template.Name}
 		}
 	}
-	if !duplicateTemplate {
+	if !duplicatedTemplate {
 		for current, parents := range templateNames {
 			if parents != nil && len(parents) > 0 {
 				for _, parent := range parents {
