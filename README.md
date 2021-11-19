@@ -24,6 +24,8 @@ Volcano是CNCF 下首个也是唯一的基于Kubernetes的容器批量计算平�
 
 ## JobFlow
 
+jobflow简写 （jf） ，可通过 kubectl get jf 查看该资源
+
 jobflow旨在实现volcano中vcjob之间的作业依赖运行。根据vcjob之间的依赖关系对vcjob进行下发。
 
 ### 字段定义
@@ -246,6 +248,8 @@ spec:
 ```
 
 ### JobTemplate
+
+jobtemplate简写 （jt） ，可通过 kubectl get jt 查看该资源
 
 希望可以生成vcctl直接转换template和vcjob
 
