@@ -404,6 +404,10 @@ Pending: flow中包不含处于Running状态vcjob。
 
 需要更改yaml文件时需要更改kustomize相关配置模板和patch文件，最后通过make generateDeployYaml生成对应yaml文件。不建议直接修改deploy下的yaml文件
 
+## 演示视频
+
+https://www.bilibili.com/video/BV1c44y1Y7FX
+
 ## 部署
 ```
 make build   #生成二进制执行文件./bin/manager
