@@ -1,0 +1,25 @@
+domain: volcano.sh
+layout:
+- go.kubebuilder.io/v3
+projectName: jobflow
+repo: jobflow
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: volcano.sh
+  group: batch
+  kind: JobFlow
+  path: jobflow/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: volcano.sh
+  group: batch
+  kind: JobTemplate
+  path: jobflow/api/v1alpha1
+  version: v1alpha1
+version: "3"
