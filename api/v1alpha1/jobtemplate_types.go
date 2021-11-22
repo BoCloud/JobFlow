@@ -38,7 +38,7 @@ type JobTemplateStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	//描述了根据jobTemplate生成的jobList
+	//Describes the Jobs generated from the JobTemplate
 	JobDependsOnList []string `json:"jobDependsOnList,omitempty"`
 }
 

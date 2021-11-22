@@ -3993,7 +3993,7 @@ spec:
             description: JobTemplateStatus defines the observed state of JobTemplate
             properties:
               jobDependsOnList:
-                description: 描述了根据jobTemplate生成的jobList
+                description: Describes the Jobs generated from the JobTemplate
                 items:
                   type: string
                 type: array

@@ -5,7 +5,6 @@ import (
 	"github.com/eapache/queue"
 )
 
-// 邻接表
 type Vertex struct {
 	Key      string
 	Parents  []*Vertex

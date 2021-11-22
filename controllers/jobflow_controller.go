@@ -71,38 +71,38 @@ func (r *JobFlowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	klog.Info(fmt.Sprintf("req.%v", req))
 
 	scheduledResult := ctrl.Result{}
-	//根据namespace加载JobFlow
+	// load JobFlow by namespace
 	jobFlow := &jobflowv1alpha1.JobFlow{}
 	time.Sleep(time.Second)
 	err := r.Get(ctx, req.NamespacedName, jobFlow)
 	if err != nil {
 		//If no instance is found, it will be returned directly
 		if errors.IsNotFound(err) {
-			klog.Info(fmt.Sprintf("not fount jobFlow : %v", req.Name))
+			klog.Info(fmt.Sprintf("not found jobFlow : %v", req.Name))
 			return scheduledResult, nil
 		}
 		klog.Error(err, err.Error())
 		r.Recorder.Eventf(jobFlow, corev1.EventTypeWarning, "Created", err.Error())
 		return scheduledResult, err
 	}
-	//JobRetainPolicy 判断是否需要删除创建的job
+	//JobRetainPolicy Judging whether jobs are necessary to delete
 	if jobFlow.Spec.JobRetainPolicy == jobflowv1alpha1.Delete && jobFlow.Status.State.Phase == jobflowv1alpha1.Succeed {
 		if err := r.deleteAllJobsCreateByJobFlow(ctx, jobFlow); err != nil {
-			klog.Error(err, "删除下发的job错误！")
+			klog.Error(err, "delete jobs create by JobFlow error！")
 			return scheduledResult, err
 		}
 		return scheduledResult, err
 	}
 
-	//根据依赖顺序下发job。若下发的job没有依赖项，则直接下发。若有依赖则当所有依赖项达到条件后开始下发
+	//deploy job by dependence order.
 	if err = r.deployJob(ctx, *jobFlow); err != nil {
 		klog.Error(err, "")
 		return scheduledResult, err
 	}
 
-	//更新status
+	//update status
 	if err = r.updateStatus(ctx, jobFlow); err != nil {
-		klog.Error(err, "更新jobFlow status错误")
+		klog.Error(err, "update jobFlow status error!")
 		return scheduledResult, err
 	}
 	klog.Info("end jobFlow Reconcile........")
@@ -117,11 +117,10 @@ const (
 	JobFlow = "JobFlow"
 )
 
-//根据依赖顺序下发job。若下发的job没有依赖项，则直接下发。若有依赖则当所有依赖项达到条件后开始下发
+//deploy job by dependence order.
 func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alpha1.JobFlow) error {
-	//根据flow加载对应的jobTemplate并下发
+	// load jobTemplate by flow and deploy it
 	for _, flow := range jobFlow.Spec.Flows {
-		//查询该job是否已经下发
 		job := &v1alpha1.Job{}
 		jobName := getJobName(jobFlow.Name, flow.Name)
 		namespacedNameJob := types.NamespacedName{
@@ -130,16 +129,16 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 		}
 		if err := r.Get(ctx, namespacedNameJob, job); err != nil {
 			if errors.IsNotFound(err) {
-				//没有下发则判断该vcjob的依赖项是否符合要求
+				//If it is not distributed, judge whether the dependency of the VcJob meets the requirements
 				if len(flow.DependsOn.Targets) == 0 {
-					//加载对应的jobTemplate
+					//load jobTemplate
 					jobTemplate := &jobflowv1alpha1.JobTemplate{}
 					namespacedNameTemplate := types.NamespacedName{
 						Namespace: jobFlow.Namespace,
 						Name:      flow.Name,
 					}
 					if err = r.Get(ctx, namespacedNameTemplate, jobTemplate); err != nil {
-						klog.Error(err, "未查询到该jobTemplate！")
+						klog.Error(err, "not found the jobTemplate！")
 						return err
 					}
 					job = &v1alpha1.Job{
@@ -162,7 +161,7 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 					}
 					r.Recorder.Eventf(&jobFlow, corev1.EventTypeNormal, "Created", fmt.Sprintf("create a job named %v!", job.Name))
 				} else {
-					//查询依赖项时候符合要求
+					//query dependency meets the requirements
 					flag := true
 					for _, targetName := range flow.DependsOn.Targets {
 						job = &v1alpha1.Job{}
@@ -185,16 +184,15 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 							flag = false
 						}
 					}
-					//依赖条件满足时
 					if flag {
-						//加载对应的jobTemplate
+						//load jobTemplate
 						jobTemplate := &jobflowv1alpha1.JobTemplate{}
 						namespacedNameTemplate := types.NamespacedName{
 							Namespace: jobFlow.Namespace,
 							Name:      flow.Name,
 						}
 						if err = r.Get(ctx, namespacedNameTemplate, jobTemplate); err != nil {
-							klog.Error(err, "未查询到该jobTemplate！")
+							klog.Error(err, "not found the jobTemplate！")
 							return err
 						}
 						job = &v1alpha1.Job{
@@ -226,9 +224,9 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 	return nil
 }
 
-//更新status
+//update status
 func (r *JobFlowReconciler) updateStatus(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow) error {
-	klog.Info(fmt.Sprintf("开始更新jobFlow status! jobFlowName: %v, jobFlowNamespace: %v ", jobFlow.Name, jobFlow.Namespace))
+	klog.Info(fmt.Sprintf("start to update jobFlow status! jobFlowName: %v, jobFlowNamespace: %v ", jobFlow.Name, jobFlow.Namespace))
 	jobFlowStatus, err := r.getAllJobStatus(ctx, jobFlow)
 	if err != nil {
 		return err
@@ -245,7 +243,7 @@ func (r *JobFlowReconciler) updateStatus(ctx context.Context, jobFlow *jobflowv1
 	return nil
 }
 
-// getAllJobStatus 获取所有已经创建的job的信息
+// getAllJobStatus Get the information of all created jobs
 func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow) (*jobflowv1alpha1.JobFlowStatus, error) {
 	allJobList := new(v1alpha1.JobList)
 	err := r.List(ctx, allJobList)
@@ -313,7 +311,7 @@ func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflo
 				flag = false
 				if jobStatusGet.RunningHistories != nil {
 					runningHistories = jobStatusGet.RunningHistories
-					//状态变化
+					//State change
 					if runningHistories[len(runningHistories)-1].State != job.Status.State.Phase {
 						runningHistories[len(runningHistories)-1].EndTimestamp = metav1.Time{
 							Time: time.Now(),
@@ -421,7 +419,7 @@ func (r *JobFlowReconciler) jobUpdateHandler(e event.UpdateEvent, q workqueue.Ra
 	references := e.ObjectOld.GetOwnerReferences()
 	for _, owner := range references {
 		if owner.Kind == "JobFlow" && strings.Contains(owner.APIVersion, "volcano") {
-			klog.Info(fmt.Sprintf("监听到job的更新事件！jobName: %v, jobFlowName: %v, nameSpace: %v", e.ObjectOld.GetName(), owner.Name, e.ObjectOld.GetNamespace()))
+			klog.Info(fmt.Sprintf("Listen to the update event of the job！jobName: %v, jobFlowName: %v, nameSpace: %v", e.ObjectOld.GetName(), owner.Name, e.ObjectOld.GetNamespace()))
 			q.AddRateLimited(reconcile.Request{
 				NamespacedName: types.NamespacedName{Name: owner.Name, Namespace: e.ObjectOld.GetNamespace()},
 			})

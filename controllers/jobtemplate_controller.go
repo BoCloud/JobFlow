@@ -71,7 +71,7 @@ func (r *JobTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// your logic here
 	scheduledResult := ctrl.Result{}
 
-	//根据namespace加载JobTemplate
+	// load JobTemplate by namespace
 	jobTemplate := &jobflowv1alpha1.JobTemplate{}
 	time.Sleep(time.Second)
 	err := r.Get(ctx, req.NamespacedName, jobTemplate)
@@ -85,7 +85,7 @@ func (r *JobTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		r.Recorder.Eventf(jobTemplate, corev1.EventTypeWarning, "Created", err.Error())
 		return scheduledResult, err
 	}
-	//查询根据JobTemplate创建的job
+	// search the jobs created by JobTemplate
 	jobList := &v1alpha1.JobList{}
 	err = r.List(ctx, jobList)
 	if err != nil {
@@ -106,7 +106,7 @@ func (r *JobTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		jobListName = append(jobListName, job.Name)
 	}
 	jobTemplate.Status.JobDependsOnList = jobListName
-	//更新
+	//update
 	if err := r.Status().Update(ctx, jobTemplate); err != nil {
 		klog.Error(err, "update error!")
 		return scheduledResult, err

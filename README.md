@@ -22,13 +22,15 @@ Volcano是CNCF 下首个也是唯一的基于Kubernetes的容器批量计算平�
 4. workflow目前可观察到下发的vcjob级别的进度。但当vcjob支持task级别的任务依赖后，workflow无法查看task级别的进度。
    JobFlow则可提供该场景。
 
-## JobFlow
+## 字段定义
 
-jobflow简写 （jf） ，可通过 kubectl get jf 查看该资源
+### JobTemplate
 
-jobflow旨在实现volcano中vcjob之间的作业依赖运行。根据vcjob之间的依赖关系对vcjob进行下发。
+jobtemplate简写 （jt） ，可通过 kubectl get jt 查看该资源
 
-### 字段定义
+希望可以生成vcctl直接转换template和vcjob
+
+jobtemplate和vcjob可以互相转换，区别是jobtemplate不会被job controller下发，jobflow可以直接引用该JobTemplate名称，来实现vcjob的下发。
 
 ```
 apiVersion: batch.volcano.sh/v1alpha1
@@ -247,13 +249,11 @@ spec:
           restartPolicy: OnFailure
 ```
 
-### JobTemplate
+### JobFlow
 
-jobtemplate简写 （jt） ，可通过 kubectl get jt 查看该资源
+jobflow简写 （jf） ，可通过 kubectl get jf 查看该资源
 
-希望可以生成vcctl直接转换template和vcjob
-
-jobtemplate和vcjob可以互相转换，区别是jobtemplate不会被job controller下发，jobflow可以直接引用该JobTemplate名称，来实现vcjob的下发。
+jobflow旨在实现volcano中vcjob之间的作业依赖运行。根据vcjob之间的依赖关系对vcjob进行下发。
 
 ```
 apiVersion: batch.volcano.sh/v1alpha1
