@@ -28,7 +28,7 @@ Volcano是CNCF 下首个也是唯一的基于Kubernetes的容器批量计算平�
 
 jobtemplate简写 （jt） ，可通过 kubectl get jt 查看该资源
 
-希望可以生成vcctl直接转换template和vcjob
+可以通过vcctl直接转换template和vcjob
 
 jobtemplate和vcjob可以互相转换，区别是jobtemplate不会被job controller下发，jobflow可以直接引用该JobTemplate名称，来实现vcjob的下发。
 
@@ -400,7 +400,7 @@ Pending: flow中包不含处于Running状态vcjob。
 6. 监听jobflow下发的vcjob。
 
 ## 开发
-通过make generateDeployYaml 生成部署文件到deploy目录下
+通过make generate-yaml 生成部署文件到deploy目录下
 
 需要更改yaml文件时需要更改kustomize相关配置模板和patch文件，最后通过make generateDeployYaml生成对应yaml文件。不建议直接修改deploy下的yaml文件
 
