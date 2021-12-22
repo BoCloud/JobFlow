@@ -76,7 +76,7 @@ func (r *JobFlowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	time.Sleep(time.Second)
 	err := r.Get(ctx, req.NamespacedName, jobFlow)
 	if err != nil {
-		//If no instance is found, it will be returned directly
+		// If no instance is found, it will be returned directly
 		if errors.IsNotFound(err) {
 			klog.Info(fmt.Sprintf("not found jobFlow : %v", req.Name))
 			return scheduledResult, nil
@@ -85,7 +85,7 @@ func (r *JobFlowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		r.Recorder.Eventf(jobFlow, corev1.EventTypeWarning, "Created", err.Error())
 		return scheduledResult, err
 	}
-	//JobRetainPolicy Judging whether jobs are necessary to delete
+	// JobRetainPolicy Judging whether jobs are necessary to delete
 	if jobFlow.Spec.JobRetainPolicy == jobflowv1alpha1.Delete && jobFlow.Status.State.Phase == jobflowv1alpha1.Succeed {
 		if err := r.deleteAllJobsCreateByJobFlow(ctx, jobFlow); err != nil {
 			klog.Error(err, "delete jobs create by JobFlow error！")
@@ -94,13 +94,13 @@ func (r *JobFlowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return scheduledResult, err
 	}
 
-	//deploy job by dependence order.
+	// deploy job by dependence order.
 	if err = r.deployJob(ctx, *jobFlow); err != nil {
 		klog.Error(err, "")
 		return scheduledResult, err
 	}
 
-	//update status
+	// update status
 	if err = r.updateStatus(ctx, jobFlow); err != nil {
 		klog.Error(err, "update jobFlow status error!")
 		return scheduledResult, err
@@ -129,28 +129,9 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 		}
 		if err := r.Get(ctx, namespacedNameJob, job); err != nil {
 			if errors.IsNotFound(err) {
-				//If it is not distributed, judge whether the dependency of the VcJob meets the requirements
+				// If it is not distributed, judge whether the dependency of the VcJob meets the requirements
 				if len(flow.DependsOn.Targets) == 0 {
-					//load jobTemplate
-					jobTemplate := &jobflowv1alpha1.JobTemplate{}
-					namespacedNameTemplate := types.NamespacedName{
-						Namespace: jobFlow.Namespace,
-						Name:      flow.Name,
-					}
-					if err = r.Get(ctx, namespacedNameTemplate, jobTemplate); err != nil {
-						klog.Error(err, "not found the jobTemplate！")
-						return err
-					}
-					job = &v1alpha1.Job{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:        jobName,
-							Namespace:   jobFlow.Namespace,
-							Annotations: map[string]string{utils.CreateByJobTemplate: utils.GetConnectionOfJobAndJobTemplate(jobFlow.Namespace, flow.Name)},
-						},
-						Spec:   jobTemplate.Spec,
-						Status: v1alpha1.JobStatus{},
-					}
-					if err := controllerutil.SetControllerReference(&jobFlow, job, r.Scheme); err != nil {
+					if err := r.loadJobTemplateAndSetJob(jobFlow, flow, jobName, job); err != nil {
 						return err
 					}
 					if err = r.Create(ctx, job); err != nil {
@@ -161,7 +142,7 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 					}
 					r.Recorder.Eventf(&jobFlow, corev1.EventTypeNormal, "Created", fmt.Sprintf("create a job named %v!", job.Name))
 				} else {
-					//query dependency meets the requirements
+					// query dependency meets the requirements
 					flag := true
 					for _, targetName := range flow.DependsOn.Targets {
 						job = &v1alpha1.Job{}
@@ -185,26 +166,7 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 						}
 					}
 					if flag {
-						//load jobTemplate
-						jobTemplate := &jobflowv1alpha1.JobTemplate{}
-						namespacedNameTemplate := types.NamespacedName{
-							Namespace: jobFlow.Namespace,
-							Name:      flow.Name,
-						}
-						if err = r.Get(ctx, namespacedNameTemplate, jobTemplate); err != nil {
-							klog.Error(err, "not found the jobTemplate！")
-							return err
-						}
-						job = &v1alpha1.Job{
-							ObjectMeta: metav1.ObjectMeta{
-								Name:        jobName,
-								Namespace:   jobFlow.Namespace,
-								Annotations: map[string]string{utils.CreateByJobTemplate: utils.GetConnectionOfJobAndJobTemplate(jobFlow.Namespace, flow.Name)},
-							},
-							Spec:   jobTemplate.Spec,
-							Status: v1alpha1.JobStatus{},
-						}
-						if err = controllerutil.SetControllerReference(&jobFlow, job, r.Scheme); err != nil {
+						if err := r.loadJobTemplateAndSetJob(jobFlow, flow, jobName, job); err != nil {
 							return err
 						}
 						if err = r.Create(ctx, job); err != nil {
@@ -224,7 +186,33 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 	return nil
 }
 
-//update status
+func (r *JobFlowReconciler) loadJobTemplateAndSetJob(jobFlow jobflowv1alpha1.JobFlow, flow jobflowv1alpha1.Flow, jobName string, job *v1alpha1.Job) error {
+	// load jobTemplate
+	jobTemplate := &jobflowv1alpha1.JobTemplate{}
+	namespacedNameTemplate := types.NamespacedName{
+		Namespace: jobFlow.Namespace,
+		Name:      flow.Name,
+	}
+	if err := r.Get(context.TODO(), namespacedNameTemplate, jobTemplate); err != nil {
+		klog.Error(err, "not found the jobTemplate！")
+		return err
+	}
+	*job = v1alpha1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        jobName,
+			Namespace:   jobFlow.Namespace,
+			Annotations: map[string]string{utils.CreateByJobTemplate: utils.GetConnectionOfJobAndJobTemplate(jobFlow.Namespace, flow.Name)},
+		},
+		Spec:   jobTemplate.Spec,
+		Status: v1alpha1.JobStatus{},
+	}
+	if err := controllerutil.SetControllerReference(&jobFlow, job, r.Scheme); err != nil {
+		return err
+	}
+	return nil
+}
+
+// update status
 func (r *JobFlowReconciler) updateStatus(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow) error {
 	klog.Info(fmt.Sprintf("start to update jobFlow status! jobFlowName: %v, jobFlowNamespace: %v ", jobFlow.Name, jobFlow.Namespace))
 	jobFlowStatus, err := r.getAllJobStatus(ctx, jobFlow)
@@ -272,23 +260,19 @@ func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflo
 	for _, flow := range jobFlow.Spec.Flows {
 		jobList = append(jobList, getJobName(jobFlow.Name, flow.Name))
 	}
+	statusListJobMap := map[v1alpha1.JobPhase]*[]string{
+		v1alpha1.Pending:     &pendingJobs,
+		v1alpha1.Running:     &runningJobs,
+		v1alpha1.Completing:  &CompletedJobs,
+		v1alpha1.Completed:   &CompletedJobs,
+		v1alpha1.Terminating: &TerminatedJobs,
+		v1alpha1.Terminated:  &TerminatedJobs,
+		v1alpha1.Failed:      &FailedJobs,
+	}
 	for _, job := range jobListRes {
-		switch job.Status.State.Phase {
-		case v1alpha1.Pending:
-			pendingJobs = append(pendingJobs, job.Name)
-		case v1alpha1.Running:
-			runningJobs = append(runningJobs, job.Name)
-		case v1alpha1.Completing:
-			CompletedJobs = append(CompletedJobs, job.Name)
-		case v1alpha1.Completed:
-			CompletedJobs = append(CompletedJobs, job.Name)
-		case v1alpha1.Terminating:
-			TerminatedJobs = append(TerminatedJobs, job.Name)
-		case v1alpha1.Terminated:
-			TerminatedJobs = append(TerminatedJobs, job.Name)
-		case v1alpha1.Failed:
-			FailedJobs = append(FailedJobs, job.Name)
-		default:
+		if jobListRes, ok := statusListJobMap[job.Status.State.Phase]; ok {
+			*jobListRes = append(*jobListRes, job.Name)
+		} else {
 			UnKnowJobs = append(UnKnowJobs, job.Name)
 		}
 		conditions[job.Name] = jobflowv1alpha1.Condition{
@@ -304,36 +288,7 @@ func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflo
 		jobStatusList = jobFlow.Status.JobStatusList
 	}
 	for _, job := range jobListRes {
-		runningHistories := make([]jobflowv1alpha1.JobRunningHistory, 0)
-		flag := true
-		for _, jobStatusGet := range jobStatusList {
-			if jobStatusGet.Name == job.Name {
-				flag = false
-				if jobStatusGet.RunningHistories != nil {
-					runningHistories = jobStatusGet.RunningHistories
-					//State change
-					if runningHistories[len(runningHistories)-1].State != job.Status.State.Phase {
-						runningHistories[len(runningHistories)-1].EndTimestamp = metav1.Time{
-							Time: time.Now(),
-						}
-						runningHistories = append(runningHistories, jobflowv1alpha1.JobRunningHistory{
-							StartTimestamp: metav1.Time{Time: time.Now()},
-							EndTimestamp:   metav1.Time{},
-							State:          job.Status.State.Phase,
-						})
-					}
-				}
-			}
-		}
-		if flag && job.Status.State.Phase != "" {
-			runningHistories = append(runningHistories, jobflowv1alpha1.JobRunningHistory{
-				StartTimestamp: metav1.Time{
-					Time: time.Now(),
-				},
-				EndTimestamp: metav1.Time{},
-				State:        job.Status.State.Phase,
-			})
-		}
+		runningHistories := getRunningHistories(jobStatusList, job)
 		endTimeStamp := metav1.Time{}
 		if job.Status.RunningDuration != nil {
 			endTimeStamp = job.CreationTimestamp
@@ -386,6 +341,41 @@ func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflo
 		State:          *state,
 	}
 	return &jobFlowStatus, nil
+}
+
+func getRunningHistories(jobStatusList []jobflowv1alpha1.JobStatus, job v1alpha1.Job) []jobflowv1alpha1.JobRunningHistory {
+	klog.Infof("start insert %+v RunningHistories", job.Name)
+	runningHistories := make([]jobflowv1alpha1.JobRunningHistory, 0)
+	flag := true
+	for _, jobStatusGet := range jobStatusList {
+		if jobStatusGet.Name == job.Name {
+			if jobStatusGet.RunningHistories != nil {
+				flag = false
+				runningHistories = jobStatusGet.RunningHistories
+				// State change
+				if runningHistories[len(runningHistories)-1].State != job.Status.State.Phase {
+					runningHistories[len(runningHistories)-1].EndTimestamp = metav1.Time{
+						Time: time.Now(),
+					}
+					runningHistories = append(runningHistories, jobflowv1alpha1.JobRunningHistory{
+						StartTimestamp: metav1.Time{Time: time.Now()},
+						EndTimestamp:   metav1.Time{},
+						State:          job.Status.State.Phase,
+					})
+				}
+			}
+		}
+	}
+	if flag && job.Status.State.Phase != "" {
+		runningHistories = append(runningHistories, jobflowv1alpha1.JobRunningHistory{
+			StartTimestamp: metav1.Time{
+				Time: time.Now(),
+			},
+			EndTimestamp: metav1.Time{},
+			State:        job.Status.State.Phase,
+		})
+	}
+	return runningHistories
 }
 
 func (r *JobFlowReconciler) deleteAllJobsCreateByJobFlow(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow) error {

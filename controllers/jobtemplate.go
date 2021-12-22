@@ -106,7 +106,7 @@ func (r *JobTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		jobListName = append(jobListName, job.Name)
 	}
 	jobTemplate.Status.JobDependsOnList = jobListName
-	//update
+	// update
 	if err := r.Status().Update(ctx, jobTemplate); err != nil {
 		klog.Error(err, "update error!")
 		return scheduledResult, err
