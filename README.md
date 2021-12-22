@@ -1,5 +1,7 @@
 # JobFlow
 
+![jobflowAnimation](./docs/images/jobflow.gif)
+
 ## 背景
 
 ### volcano
