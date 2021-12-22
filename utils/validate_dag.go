@@ -36,17 +36,13 @@ func (dag *DAG) BFS(root *Vertex) error {
 
 	for {
 		if q.Length() == 0 {
-			fmt.Println("done")
 			break
 		}
 		current := q.Remove().(*Vertex)
 
-		fmt.Println("bfs key", current.Key)
-
 		for _, v := range current.Children {
-			fmt.Printf("from:%v to:%s\n", current.Key, v.Key)
 			if v.Key == root.Key {
-				return fmt.Errorf("find bad dependency, please check the dependencies of your templates; ")
+				return fmt.Errorf("find bad dependency, please check the dependencies of your templates")
 			}
 			if _, ok := visitMap[v.Key]; !ok {
 				visitMap[v.Key] = true

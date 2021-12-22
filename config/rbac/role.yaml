@@ -85,3 +85,14 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+    - admissionregistration.k8s.io
+  resources:
+    - mutatingwebhookconfigurations
+    - validatingwebhookconfigurations
+  verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
