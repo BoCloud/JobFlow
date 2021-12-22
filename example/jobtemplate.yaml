@@ -1,0 +1,214 @@
+apiVersion: batch.volcano.sh/v1alpha1
+kind: JobTemplate
+metadata:
+  name: A
+spec:
+  minAvailable: 3
+  schedulerName: volcano
+  priorityClassName: high-priority
+  policies:
+    - event: PodEvicted
+      action: RestartJob
+  plugins:
+    ssh: []
+    env: []
+    svc: []
+  maxRetry: 5
+  queue: default
+  volumes:
+    - mountPath: "/myinput"
+    - mountPath: "/myoutput"
+      volumeClaimName: "testvolumeclaimname"
+      volumeClaim:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: "my-storage-class"
+        resources:
+          requests:
+            storage: 1Gi
+  tasks:
+    - replicas: 6
+      name: "default-nginx"
+      template:
+        metadata:
+          name: web
+        spec:
+          containers:
+            - image: nginx
+              imagePullPolicy: IfNotPresent
+              name: nginx
+              resources:
+                requests:
+                  cpu: "1"
+          restartPolicy: OnFailure
+---
+apiVersion: batch.volcano.sh/v1alpha1
+kind: JobTemplate
+metadata:
+  name: B
+spec:
+  minAvailable: 3
+  schedulerName: volcano
+  priorityClassName: high-priority
+  policies:
+    - event: PodEvicted
+      action: RestartJob
+  plugins:
+    ssh: []
+    env: []
+    svc: []
+  maxRetry: 5
+  queue: default
+  volumes:
+    - mountPath: "/myinput"
+    - mountPath: "/myoutput"
+      volumeClaimName: "testvolumeclaimname"
+      volumeClaim:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: "my-storage-class"
+        resources:
+          requests:
+            storage: 1Gi
+  tasks:
+    - replicas: 6
+      name: "default-nginx"
+      template:
+        metadata:
+          name: web
+        spec:
+          containers:
+            - image: nginx
+              imagePullPolicy: IfNotPresent
+              name: nginx
+              resources:
+                requests:
+                  cpu: "1"
+          restartPolicy: OnFailure
+---
+apiVersion: batch.volcano.sh/v1alpha1
+kind: JobTemplate
+metadata:
+  name: C
+spec:
+  minAvailable: 3
+  schedulerName: volcano
+  priorityClassName: high-priority
+  policies:
+    - event: PodEvicted
+      action: RestartJob
+  plugins:
+    ssh: []
+    env: []
+    svc: []
+  maxRetry: 5
+  queue: default
+  volumes:
+    - mountPath: "/myinput"
+    - mountPath: "/myoutput"
+      volumeClaimName: "testvolumeclaimname"
+      volumeClaim:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: "my-storage-class"
+        resources:
+          requests:
+            storage: 1Gi
+  tasks:
+    - replicas: 6
+      name: "default-nginx"
+      template:
+        metadata:
+          name: web
+        spec:
+          containers:
+            - image: nginx
+              imagePullPolicy: IfNotPresent
+              name: nginx
+              resources:
+                requests:
+                  cpu: "1"
+          restartPolicy: OnFailure
+---
+apiVersion: batch.volcano.sh/v1alpha1
+kind: JobTemplate
+metadata:
+  name: D
+spec:
+  minAvailable: 3
+  schedulerName: volcano
+  priorityClassName: high-priority
+  policies:
+    - event: PodEvicted
+      action: RestartJob
+  plugins:
+    ssh: []
+    env: []
+    svc: []
+  maxRetry: 5
+  queue: default
+  volumes:
+    - mountPath: "/myinput"
+    - mountPath: "/myoutput"
+      volumeClaimName: "testvolumeclaimname"
+      volumeClaim:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: "my-storage-class"
+        resources:
+          requests:
+            storage: 1Gi
+  tasks:
+    - replicas: 6
+      name: "default-nginx"
+      template:
+        metadata:
+          name: web
+        spec:
+          containers:
+            - image: nginx
+              imagePullPolicy: IfNotPresent
+              name: nginx
+              resources:
+                requests:
+                  cpu: "1"
+          restartPolicy: OnFailure
+---
+apiVersion: batch.volcano.sh/v1alpha1
+kind: JobTemplate
+metadata:
+  name: E
+spec:
+  minAvailable: 3
+  schedulerName: volcano
+  priorityClassName: high-priority
+  policies:
+    - event: PodEvicted
+      action: RestartJob
+  plugins:
+    ssh: []
+    env: []
+    svc: []
+  maxRetry: 5
+  queue: default
+  volumes:
+    - mountPath: "/myinput"
+    - mountPath: "/myoutput"
+      volumeClaimName: "testvolumeclaimname"
+      volumeClaim:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: "my-storage-class"
+        resources:
+          requests:
+            storage: 1Gi
+  tasks:
+    - replicas: 6
+      name: "default-nginx"
+      template:
+        metadata:
+          name: web
+        spec:
+          containers:
+            - image: nginx
+              imagePullPolicy: IfNotPresent
+              name: nginx
+              resources:
+                requests:
+                  cpu: "1"
+          restartPolicy: OnFailure
