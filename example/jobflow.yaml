@@ -1,0 +1,22 @@
+apiVersion: batch.volcano.sh/v1alpha1
+kind: JobFlow
+metadata:
+  name: test
+  namespace: default
+spec:
+  JobRetainPolicy: delete   # After jobflow runs, keep the generated job. Otherwise, delete it.
+  flows:
+    - name: A
+    - name: B
+      dependsOn:
+        targets: ['A']
+    - name: C
+      dependsOn:
+        targets: ['B']
+    - name: D
+      dependsOn:
+        targets: ['B']
+    - name: E
+      dependsOn:
+        targets: ['C','D']
+        
