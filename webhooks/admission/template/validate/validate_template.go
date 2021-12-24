@@ -1,69 +1,73 @@
-/*
-
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-package v1alpha1
+package validate
 
 import (
 	"fmt"
 
-	"jobflow/utils"
-
+	"k8s.io/api/admission/v1beta1"
+	whv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/klog"
 	k8score "k8s.io/kubernetes/pkg/apis/core"
 	k8scorev1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	v1qos "k8s.io/kubernetes/pkg/apis/core/v1/helper/qos"
 	k8scorevalid "k8s.io/kubernetes/pkg/apis/core/validation"
-	ctrl "sigs.k8s.io/controller-runtime"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"volcano.sh/apis/pkg/apis/batch/v1alpha1"
+
+	jobflowv1alpha1 "jobflow/api/v1alpha1"
+	"jobflow/utils"
+	"jobflow/webhooks/router"
+	"jobflow/webhooks/schema"
 )
 
-// log is for logging in this package.
-var jobTemplateLog = logf.Log.WithName("jobtemplate-resource")
-
-func (job *JobTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(job).
-		Complete()
+func init() {
+	_ = router.RegisterAdmission(service)
 }
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
+var service = &router.AdmissionService{
+	Path: "/jobtemplates/validate",
+	Func: AdmitJobTemplates,
 
-// +kubebuilder:webhook:path=/mutate-batch-volcano-sh-v1alpha1-jobtemplate,mutating=true,failurePolicy=fail,sideEffects=None,groups=batch.volcano.sh,resources=jobtemplates,verbs=create;update,versions=v1alpha1,name=mjobtemplate.kb.io,admissionReviewVersions={v1,v1alpha1}
-
-var _ webhook.Defaulter = &JobTemplate{}
-
-// Default implements webhook.Defaulter so a webhook will be registered for the type
-func (job *JobTemplate) Default() {
-	jobTemplateLog.Info("default", "name", job.Name)
+	ValidatingConfig: &whv1beta1.ValidatingWebhookConfiguration{
+		Webhooks: []whv1beta1.ValidatingWebhook{{
+			Name: "validatetemplate.volcano.sh",
+			Rules: []whv1beta1.RuleWithOperations{
+				{
+					Operations: []whv1beta1.OperationType{whv1beta1.Create},
+					Rule: whv1beta1.Rule{
+						APIGroups:   []string{"batch.volcano.sh"},
+						APIVersions: []string{"v1alpha1"},
+						Resources:   []string{"jobtemplates"},
+					},
+				},
+			},
+		}},
+	},
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-batch-volcano-sh-v1alpha1-jobtemplate,mutating=false,failurePolicy=fail,sideEffects=None,groups=batch.volcano.sh,resources=jobtemplates,versions=v1alpha1,name=vjobtemplate.kb.io,admissionReviewVersions={v1,v1alpha1}
+// AdmitJobFlows is to admit jobFlows and return response.
+func AdmitJobTemplates(ar v1beta1.AdmissionReview) error {
+	klog.V(3).Infof("admitting jobtemplates -- %s", ar.Request.Operation)
 
-var _ webhook.Validator = &JobTemplate{}
+	jobTemplate, err := schema.DecodeJobTemplate(ar.Request.Object, ar.Request.Resource)
+	if err != nil {
+		return err
+	}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (job *JobTemplate) ValidateCreate() error {
-	jobTemplateLog.Info("validate create", "name", job.Name)
+	switch ar.Request.Operation {
+	case v1beta1.Create:
+		err = validateJobTemplateCreate(jobTemplate)
+	default:
+		err = fmt.Errorf("only support 'CREATE' operation")
+	}
 
+	return err
+}
+
+func validateJobTemplateCreate(job *jobflowv1alpha1.JobTemplate) error {
+	klog.V(3).Infof("validate create %s", job.Name)
 	var msg string
 	taskNames := map[string]string{}
 	var totalReplicas int32
@@ -110,11 +114,17 @@ func (job *JobTemplate) ValidateCreate() error {
 		}
 
 		podName := makePodName(job.Name, task.Name, index)
-		msg += validateK8sPodNameLength(podName)
-		msg += validateTaskTemplate(task, job, index)
+		if err := validateK8sPodNameLength(podName); err != nil {
+			msg += err.Error()
+		}
+		if err := validateTaskTemplate(task, job, index); err != nil {
+			msg += err.Error()
+		}
 	}
 
-	msg += validateJobName(job)
+	if err := validateJobName(job); err != nil {
+		msg += err.Error()
+	}
 
 	if totalReplicas < job.Spec.MinAvailable {
 		msg += "job 'minAvailable' should not be greater than total replicas in tasks;"
@@ -132,30 +142,19 @@ func (job *JobTemplate) ValidateCreate() error {
 	if msg != "" {
 		return fmt.Errorf(msg)
 	}
-	return nil
-}
-
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (job *JobTemplate) ValidateUpdate(old runtime.Object) error {
-	jobTemplateLog.Info("validate update", "name", job.Name)
-
-	return fmt.Errorf("JobTemplate does not support update operations")
-}
-
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (job *JobTemplate) ValidateDelete() error {
-	jobTemplateLog.Info("validate delete", "name", job.Name)
 
 	return nil
 }
 
-func validateTaskTemplate(task v1alpha1.TaskSpec, job *JobTemplate, index int) string {
+func validateTaskTemplate(task v1alpha1.TaskSpec, job *jobflowv1alpha1.JobTemplate, index int) error {
 	var v1PodTemplate v1.PodTemplate
 	v1PodTemplate.Template = *task.Template.DeepCopy()
 	k8scorev1.SetObjectDefaults_PodTemplate(&v1PodTemplate)
 
 	var coreTemplateSpec k8score.PodTemplateSpec
-	k8scorev1.Convert_v1_PodTemplateSpec_To_core_PodTemplateSpec(&v1PodTemplate.Template, &coreTemplateSpec, nil)
+	if err := k8scorev1.Convert_v1_PodTemplateSpec_To_core_PodTemplateSpec(&v1PodTemplate.Template, &coreTemplateSpec, nil); err != nil {
+		return fmt.Errorf("failed to convert v1_PodTemplateSpec to core_PodTemplateSpec")
+	}
 
 	// Skip verify container SecurityContex.Privileged as it depends on
 	// the kube-apiserver `allow-privileged` flag.
@@ -178,37 +177,37 @@ func validateTaskTemplate(task v1alpha1.TaskSpec, job *JobTemplate, index int) s
 		for index := range allErrs {
 			msg += allErrs[index].Error() + ". "
 		}
-		return msg
+		return fmt.Errorf(msg)
 	}
 
-	msg := validateTaskTopoPolicy(task, index)
-	if msg != "" {
-		return msg
+	err := validateTaskTopoPolicy(task, index)
+	if err != nil {
+		return err
 	}
 
-	return ""
+	return nil
 }
 
 // MakePodName creates pod name.
 func makePodName(jobName string, taskName string, index int) string {
 	return fmt.Sprintf("%s-%s-%d", jobName, taskName, index)
 }
-func validateK8sPodNameLength(podName string) string {
+func validateK8sPodNameLength(podName string) error {
 	if errMsgs := validation.IsQualifiedName(podName); len(errMsgs) > 0 {
-		return fmt.Sprintf("create pod with name %s validate failed %v;", podName, errMsgs)
+		return fmt.Errorf(" create pod with name %s validate failed %v", podName, errMsgs)
 	}
-	return ""
+	return nil
 }
-func validateJobName(job *JobTemplate) string {
+func validateJobName(job *jobflowv1alpha1.JobTemplate) error {
 	if errMsgs := validation.IsQualifiedName(job.Name); len(errMsgs) > 0 {
-		return fmt.Sprintf("create job with name %s validate failed %v", job.Name, errMsgs)
+		return fmt.Errorf(" create job with name %s validate failed %v", job.Name, errMsgs)
 	}
-	return ""
+	return nil
 }
 
-func validateTaskTopoPolicy(task v1alpha1.TaskSpec, index int) string {
+func validateTaskTopoPolicy(task v1alpha1.TaskSpec, index int) error {
 	if task.TopologyPolicy == "" || task.TopologyPolicy == v1alpha1.None {
-		return ""
+		return nil
 	}
 
 	template := task.Template.DeepCopy()
@@ -230,18 +229,18 @@ func validateTaskTopoPolicy(task v1alpha1.TaskSpec, index int) string {
 	}
 
 	if v1qos.GetPodQOS(pod) != v1.PodQOSGuaranteed {
-		return fmt.Sprintf("spec.task[%d] isn't Guaranteed pod, kind=%v", index, v1qos.GetPodQOS(pod))
+		return fmt.Errorf("spec.task[%d] isn't Guaranteed pod, kind=%v", index, v1qos.GetPodQOS(pod))
 	}
 
 	for id, container := range append(template.Spec.Containers, template.Spec.InitContainers...) {
 		requestNum := guaranteedCPUs(container)
 		if requestNum == 0 {
-			return fmt.Sprintf("the cpu request isn't  an integer in spec.task[%d] container[%d].",
+			return fmt.Errorf("the cpu request isn't  an integer in spec.task[%d] container[%d].",
 				index, id)
 		}
 	}
 
-	return ""
+	return nil
 }
 
 func guaranteedCPUs(container v1.Container) int {

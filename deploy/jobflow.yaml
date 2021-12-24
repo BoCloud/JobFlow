@@ -4351,6 +4351,55 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+    - admissionregistration.k8s.io
+  resources:
+    - mutatingwebhookconfigurations
+    - validatingwebhookconfigurations
+  verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+- apiGroups:
+    - certificates.k8s.io
+  resources:
+    - certificatesigningrequests
+  verbs:
+    - get
+    - list
+    - create
+    - delete
+- apiGroups:
+    - certificates.k8s.io
+  resources:
+    - certificatesigningrequests/approval
+  verbs:
+    - create
+    - update
+- apiGroups:
+    - ""
+  resources:
+    - secrets
+  verbs:
+    - create
+    - get
+    - patch
+- apiGroups:
+    - ""
+  resources:
+    - services
+  verbs:
+    - get
+- apiGroups:
+    - scheduling.incubator.k8s.io
+    - scheduling.volcano.sh
+  resources:
+    - queues
+  verbs:
+    - get
+    - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -4541,103 +4590,4 @@ spec:
         secret:
           defaultMode: 420
           secretName: jobflow-webhook-server-cert
----
-apiVersion: admissionregistration.k8s.io/v1
-kind: MutatingWebhookConfiguration
-metadata:
-  name: jobflow-mutating-webhook-configuration
-webhooks:
-- admissionReviewVersions:
-  - v1
-  - v1alpha1
-  clientConfig:
-    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURSVENDQWkyZ0F3SUJBZ0lVRVVJaXJ0R05KS1FzMGZldXFPMExRRFlvSzN3d0RRWUpLb1pJaHZjTkFRRUwKQlFBd01qRXdNQzRHQTFVRUF3d25hbTlpWm14dmR5MTNaV0pvYjI5ckxYTmxjblpwWTJVdWEzVmlaUzF6ZVhOMApaVzB1YzNaak1CNFhEVEl4TVRJeU1ERXdNamN6TmxvWERUTXhNVEl4T0RFd01qY3pObG93TWpFd01DNEdBMVVFCkF3d25hbTlpWm14dmR5MTNaV0pvYjI5ckxYTmxjblpwWTJVdWEzVmlaUzF6ZVhOMFpXMHVjM1pqTUlJQklqQU4KQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBelg5Q09NUk8xMUF6aCt2eEYrOHVrK2IyUjVqcgpLZ014TmcrNDVONkdEeWp5bFFkNmdPSUJQUE5pd2NrRFQzYlduNWlacG1Ib3JEVkZ0cGRxS1R2T0ROSVdFWWFYCnZRc3dMY0wrUGoxTHhFWTc4T3pkTE95OURCTkF3eDdIWkNYR2U2UzhlWDZqOWJ1T2NOMVhzckFoYllQdFlyNTQKdkhkM2NWTU5VS09nYWltUDRNSFJ6ZnBTNi9OVzNnZ1c3bHNVVjRvM2N0WFRtbTVDRFdwMzhnODNpVWFYZlJIMgo2S045V3hZbGp6YzRFd0N2WHE3eTZaTDBZdEZOQW9DZ3RFRGhsOG5Dc1RoSEN0Uk04OS9keVBpb1ZJN2ZCNWVOCnlwZnlNWjJVcVlZSFFFdXFKa3NmNGZNR2x4dFRSSDBkYXJ5MCtkR0FBVWY4bi9xYzVjNUNBRFI4SlFJREFRQUIKbzFNd1VUQWRCZ05WSFE0RUZnUVVlRXdlbFVLZStYNXRLamlpREkzVFRGVGdHZFl3SHdZRFZSMGpCQmd3Rm9BVQplRXdlbFVLZStYNXRLamlpREkzVFRGVGdHZFl3RHdZRFZSMFRBUUgvQkFVd0F3RUIvekFOQmdrcWhraUc5dzBCCkFRc0ZBQU9DQVFFQWFFalFWN1I5SHJpby9VZVRqQXBRK1JXQ2NNWVJWNXIrU25RNGV5cVBIOHlZQjMxNmdKazkKL01ZNXV6RTJhK0NkSUdHQmRtQzgvRHBPTDdUTnZSNXlCYkNNZmRwMzdMTXlSNlVJRXEvTmVUWTBYRi9WcFFPMApqSEI0ZHMwVGFBaGJwN3pobFRsYytjK3JyenlqWXJ1N3VYMHg1ekhFUkhFRFpHRjRCVThlcTcyOVBxcWMxbTdSCjlwMWZVMFF5b3NKZXJhVmt6czJYUHgzZmV2bXZHMm55dlM0UGFNdVRXbXltMkpnZndqZmduUG5SaUNvL3R5d1YKWks1a2hUQTZ6VGZaZzJnaUt0Z2JuN1NhcWtsNVFOcHNaaFU2NjNkN0dIQmgyZThpV1ZhQXNXK0xvV2xLNFFtLwprNmplQktZbzRvZHJwSXdUNEt4OTdYSzYzcklnUSt3NklRPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
-    service:
-      name: jobflow-webhook-service
-      namespace: kube-system
-      path: /mutate-batch-volcano-sh-v1alpha1-jobtemplate
-  failurePolicy: Fail
-  name: mjobtemplate.kb.io
-  rules:
-  - apiGroups:
-    - batch.volcano.sh
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - jobtemplates
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1alpha1
-  clientConfig:
-    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURSVENDQWkyZ0F3SUJBZ0lVRVVJaXJ0R05KS1FzMGZldXFPMExRRFlvSzN3d0RRWUpLb1pJaHZjTkFRRUwKQlFBd01qRXdNQzRHQTFVRUF3d25hbTlpWm14dmR5MTNaV0pvYjI5ckxYTmxjblpwWTJVdWEzVmlaUzF6ZVhOMApaVzB1YzNaak1CNFhEVEl4TVRJeU1ERXdNamN6TmxvWERUTXhNVEl4T0RFd01qY3pObG93TWpFd01DNEdBMVVFCkF3d25hbTlpWm14dmR5MTNaV0pvYjI5ckxYTmxjblpwWTJVdWEzVmlaUzF6ZVhOMFpXMHVjM1pqTUlJQklqQU4KQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBelg5Q09NUk8xMUF6aCt2eEYrOHVrK2IyUjVqcgpLZ014TmcrNDVONkdEeWp5bFFkNmdPSUJQUE5pd2NrRFQzYlduNWlacG1Ib3JEVkZ0cGRxS1R2T0ROSVdFWWFYCnZRc3dMY0wrUGoxTHhFWTc4T3pkTE95OURCTkF3eDdIWkNYR2U2UzhlWDZqOWJ1T2NOMVhzckFoYllQdFlyNTQKdkhkM2NWTU5VS09nYWltUDRNSFJ6ZnBTNi9OVzNnZ1c3bHNVVjRvM2N0WFRtbTVDRFdwMzhnODNpVWFYZlJIMgo2S045V3hZbGp6YzRFd0N2WHE3eTZaTDBZdEZOQW9DZ3RFRGhsOG5Dc1RoSEN0Uk04OS9keVBpb1ZJN2ZCNWVOCnlwZnlNWjJVcVlZSFFFdXFKa3NmNGZNR2x4dFRSSDBkYXJ5MCtkR0FBVWY4bi9xYzVjNUNBRFI4SlFJREFRQUIKbzFNd1VUQWRCZ05WSFE0RUZnUVVlRXdlbFVLZStYNXRLamlpREkzVFRGVGdHZFl3SHdZRFZSMGpCQmd3Rm9BVQplRXdlbFVLZStYNXRLamlpREkzVFRGVGdHZFl3RHdZRFZSMFRBUUgvQkFVd0F3RUIvekFOQmdrcWhraUc5dzBCCkFRc0ZBQU9DQVFFQWFFalFWN1I5SHJpby9VZVRqQXBRK1JXQ2NNWVJWNXIrU25RNGV5cVBIOHlZQjMxNmdKazkKL01ZNXV6RTJhK0NkSUdHQmRtQzgvRHBPTDdUTnZSNXlCYkNNZmRwMzdMTXlSNlVJRXEvTmVUWTBYRi9WcFFPMApqSEI0ZHMwVGFBaGJwN3pobFRsYytjK3JyenlqWXJ1N3VYMHg1ekhFUkhFRFpHRjRCVThlcTcyOVBxcWMxbTdSCjlwMWZVMFF5b3NKZXJhVmt6czJYUHgzZmV2bXZHMm55dlM0UGFNdVRXbXltMkpnZndqZmduUG5SaUNvL3R5d1YKWks1a2hUQTZ6VGZaZzJnaUt0Z2JuN1NhcWtsNVFOcHNaaFU2NjNkN0dIQmgyZThpV1ZhQXNXK0xvV2xLNFFtLwprNmplQktZbzRvZHJwSXdUNEt4OTdYSzYzcklnUSt3NklRPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
-    service:
-      name: jobflow-webhook-service
-      namespace: kube-system
-      path: /mutate-batch-volcano-sh-v1alpha1-jobflow
-  failurePolicy: Fail
-  name: mjobflow.kb.io
-  rules:
-  - apiGroups:
-    - batch.volcano.sh
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - jobflows
-  sideEffects: None
----
-apiVersion: admissionregistration.k8s.io/v1
-kind: ValidatingWebhookConfiguration
-metadata:
-  name: jobflow-validating-webhook-configuration
-webhooks:
-- admissionReviewVersions:
-  - v1
-  - v1alpha1
-  clientConfig:
-    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURSVENDQWkyZ0F3SUJBZ0lVRVVJaXJ0R05KS1FzMGZldXFPMExRRFlvSzN3d0RRWUpLb1pJaHZjTkFRRUwKQlFBd01qRXdNQzRHQTFVRUF3d25hbTlpWm14dmR5MTNaV0pvYjI5ckxYTmxjblpwWTJVdWEzVmlaUzF6ZVhOMApaVzB1YzNaak1CNFhEVEl4TVRJeU1ERXdNamN6TmxvWERUTXhNVEl4T0RFd01qY3pObG93TWpFd01DNEdBMVVFCkF3d25hbTlpWm14dmR5MTNaV0pvYjI5ckxYTmxjblpwWTJVdWEzVmlaUzF6ZVhOMFpXMHVjM1pqTUlJQklqQU4KQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBelg5Q09NUk8xMUF6aCt2eEYrOHVrK2IyUjVqcgpLZ014TmcrNDVONkdEeWp5bFFkNmdPSUJQUE5pd2NrRFQzYlduNWlacG1Ib3JEVkZ0cGRxS1R2T0ROSVdFWWFYCnZRc3dMY0wrUGoxTHhFWTc4T3pkTE95OURCTkF3eDdIWkNYR2U2UzhlWDZqOWJ1T2NOMVhzckFoYllQdFlyNTQKdkhkM2NWTU5VS09nYWltUDRNSFJ6ZnBTNi9OVzNnZ1c3bHNVVjRvM2N0WFRtbTVDRFdwMzhnODNpVWFYZlJIMgo2S045V3hZbGp6YzRFd0N2WHE3eTZaTDBZdEZOQW9DZ3RFRGhsOG5Dc1RoSEN0Uk04OS9keVBpb1ZJN2ZCNWVOCnlwZnlNWjJVcVlZSFFFdXFKa3NmNGZNR2x4dFRSSDBkYXJ5MCtkR0FBVWY4bi9xYzVjNUNBRFI4SlFJREFRQUIKbzFNd1VUQWRCZ05WSFE0RUZnUVVlRXdlbFVLZStYNXRLamlpREkzVFRGVGdHZFl3SHdZRFZSMGpCQmd3Rm9BVQplRXdlbFVLZStYNXRLamlpREkzVFRGVGdHZFl3RHdZRFZSMFRBUUgvQkFVd0F3RUIvekFOQmdrcWhraUc5dzBCCkFRc0ZBQU9DQVFFQWFFalFWN1I5SHJpby9VZVRqQXBRK1JXQ2NNWVJWNXIrU25RNGV5cVBIOHlZQjMxNmdKazkKL01ZNXV6RTJhK0NkSUdHQmRtQzgvRHBPTDdUTnZSNXlCYkNNZmRwMzdMTXlSNlVJRXEvTmVUWTBYRi9WcFFPMApqSEI0ZHMwVGFBaGJwN3pobFRsYytjK3JyenlqWXJ1N3VYMHg1ekhFUkhFRFpHRjRCVThlcTcyOVBxcWMxbTdSCjlwMWZVMFF5b3NKZXJhVmt6czJYUHgzZmV2bXZHMm55dlM0UGFNdVRXbXltMkpnZndqZmduUG5SaUNvL3R5d1YKWks1a2hUQTZ6VGZaZzJnaUt0Z2JuN1NhcWtsNVFOcHNaaFU2NjNkN0dIQmgyZThpV1ZhQXNXK0xvV2xLNFFtLwprNmplQktZbzRvZHJwSXdUNEt4OTdYSzYzcklnUSt3NklRPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
-    service:
-      name: jobflow-webhook-service
-      namespace: kube-system
-      path: /validate-batch-volcano-sh-v1alpha1-jobtemplate
-  failurePolicy: Fail
-  name: vjobtemplate.kb.io
-  rules:
-  - apiGroups:
-    - batch.volcano.sh
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - jobtemplates
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1alpha1
-  clientConfig:
-    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURSVENDQWkyZ0F3SUJBZ0lVRVVJaXJ0R05KS1FzMGZldXFPMExRRFlvSzN3d0RRWUpLb1pJaHZjTkFRRUwKQlFBd01qRXdNQzRHQTFVRUF3d25hbTlpWm14dmR5MTNaV0pvYjI5ckxYTmxjblpwWTJVdWEzVmlaUzF6ZVhOMApaVzB1YzNaak1CNFhEVEl4TVRJeU1ERXdNamN6TmxvWERUTXhNVEl4T0RFd01qY3pObG93TWpFd01DNEdBMVVFCkF3d25hbTlpWm14dmR5MTNaV0pvYjI5ckxYTmxjblpwWTJVdWEzVmlaUzF6ZVhOMFpXMHVjM1pqTUlJQklqQU4KQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBelg5Q09NUk8xMUF6aCt2eEYrOHVrK2IyUjVqcgpLZ014TmcrNDVONkdEeWp5bFFkNmdPSUJQUE5pd2NrRFQzYlduNWlacG1Ib3JEVkZ0cGRxS1R2T0ROSVdFWWFYCnZRc3dMY0wrUGoxTHhFWTc4T3pkTE95OURCTkF3eDdIWkNYR2U2UzhlWDZqOWJ1T2NOMVhzckFoYllQdFlyNTQKdkhkM2NWTU5VS09nYWltUDRNSFJ6ZnBTNi9OVzNnZ1c3bHNVVjRvM2N0WFRtbTVDRFdwMzhnODNpVWFYZlJIMgo2S045V3hZbGp6YzRFd0N2WHE3eTZaTDBZdEZOQW9DZ3RFRGhsOG5Dc1RoSEN0Uk04OS9keVBpb1ZJN2ZCNWVOCnlwZnlNWjJVcVlZSFFFdXFKa3NmNGZNR2x4dFRSSDBkYXJ5MCtkR0FBVWY4bi9xYzVjNUNBRFI4SlFJREFRQUIKbzFNd1VUQWRCZ05WSFE0RUZnUVVlRXdlbFVLZStYNXRLamlpREkzVFRGVGdHZFl3SHdZRFZSMGpCQmd3Rm9BVQplRXdlbFVLZStYNXRLamlpREkzVFRGVGdHZFl3RHdZRFZSMFRBUUgvQkFVd0F3RUIvekFOQmdrcWhraUc5dzBCCkFRc0ZBQU9DQVFFQWFFalFWN1I5SHJpby9VZVRqQXBRK1JXQ2NNWVJWNXIrU25RNGV5cVBIOHlZQjMxNmdKazkKL01ZNXV6RTJhK0NkSUdHQmRtQzgvRHBPTDdUTnZSNXlCYkNNZmRwMzdMTXlSNlVJRXEvTmVUWTBYRi9WcFFPMApqSEI0ZHMwVGFBaGJwN3pobFRsYytjK3JyenlqWXJ1N3VYMHg1ekhFUkhFRFpHRjRCVThlcTcyOVBxcWMxbTdSCjlwMWZVMFF5b3NKZXJhVmt6czJYUHgzZmV2bXZHMm55dlM0UGFNdVRXbXltMkpnZndqZmduUG5SaUNvL3R5d1YKWks1a2hUQTZ6VGZaZzJnaUt0Z2JuN1NhcWtsNVFOcHNaaFU2NjNkN0dIQmgyZThpV1ZhQXNXK0xvV2xLNFFtLwprNmplQktZbzRvZHJwSXdUNEt4OTdYSzYzcklnUSt3NklRPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
-    service:
-      name: jobflow-webhook-service
-      namespace: kube-system
-      path: /validate-batch-volcano-sh-v1alpha1-jobflow
-  failurePolicy: Fail
-  name: vjobflow.kb.io
-  rules:
-  - apiGroups:
-    - batch.volcano.sh
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - jobflows
-  sideEffects: None
+

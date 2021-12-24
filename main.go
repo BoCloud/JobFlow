@@ -34,6 +34,9 @@ import (
 
 	batchv1alpha1 "jobflow/api/v1alpha1"
 	"jobflow/controllers"
+	"jobflow/webhooks"
+	_ "jobflow/webhooks/admission/jobflow/validate"
+	_ "jobflow/webhooks/admission/template/validate"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -97,12 +100,9 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Job")
 		os.Exit(1)
 	}
-	if err = (&batchv1alpha1.JobFlow{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "JobFlow")
-		os.Exit(1)
-	}
-	if err = (&batchv1alpha1.JobTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "JobTemplate")
+
+	if err = webhooks.Run(); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "jobFlow or jobTemplate")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
