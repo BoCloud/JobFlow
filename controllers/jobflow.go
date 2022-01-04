@@ -50,12 +50,14 @@ type JobFlowReconciler struct {
 	Recorder record.EventRecorder
 }
 
-//+kubebuilder:rbac:groups=batch.volcano.sh,resources=jobflows,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=batch.volcano.sh,resources=jobflows/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=batch.volcano.sh,resources=jobflows/finalizers,verbs=update
+// +kubebuilder:rbac:groups=batch.volcano.sh,resources=jobflows,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=batch.volcano.sh,resources=jobflows/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=batch.volcano.sh,resources=jobflows/finalizers,verbs=update
 // +kubebuilder:rbac:groups=batch.volcano.sh,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch.volcano.sh,resources=jobs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=mutatingwebhookconfigurations,verbs=get;list;watch;create;update;delete
+// +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=validatingwebhookconfigurations,verbs=get;list;watch;create;update;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -130,7 +132,7 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 		if err := r.Get(ctx, namespacedNameJob, job); err != nil {
 			if errors.IsNotFound(err) {
 				// If it is not distributed, judge whether the dependency of the VcJob meets the requirements
-				if len(flow.DependsOn.Targets) == 0 {
+				if flow.DependsOn == nil || len(flow.DependsOn.Targets) == 0 {
 					if err := r.loadJobTemplateAndSetJob(jobFlow, flow, jobName, job); err != nil {
 						return err
 					}
