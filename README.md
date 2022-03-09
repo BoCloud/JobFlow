@@ -20,3 +20,15 @@ https://www.bilibili.com/video/BV1c44y1Y7FX
 ```
 kubectl apply -f https://raw.githubusercontent.com/BoCloud/JobFlow/main/deploy/jobflow.yaml
 ```
+
+## Donation Self-Check Form
+
+| ID   | Item                  | Description                                                  | Required | Compliance Conditions                                        | Note                            | complete  |
+| ---- | --------------------- | ------------------------------------------------------------ | -------- | ------------------------------------------------------------ | ------------------------------- | ---- |
+| 1    | Code of Conduct       | The conduct for the source code                              | Y        | [Contributor Covenant Code of Conduct](https://www.contributor-covenant.org/) | Submit the code scanning report | [yes](./docs/scanning-report/fossas-report.html) |
+| 2    | License               | The License the project obeys                                | Y        | [Apache 2.0](https://github.com/volcano-sh/volcano/blob/master/LICENSE) |                                 | [yes](./LICENSE) |
+| 3    | Readme                | Brief introduction of the project along with the source code | Y        |                                                              |                                 | [yes](./README.md) |
+| 4    | CI/CD                 | The CI/CD to judge the compliance for all PRs                | Y        | [Github Action](https://docs.github.com/en/actions)          |                                 |      |
+| 5    | Security              | Security policy including vulnerability discovery and disposal | Y        | [Security Release Process](https://github.com/volcano-sh/volcano/blob/master/SECURITY.md) | Submit security scanning report | yes[![Total alerts](https://img.shields.io/lgtm/alerts/g/BoCloud/JobFlow.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/BoCloud/JobFlow/alerts/) |
+| 6    | Roadmap               | Roadmap file about the important features in the feature     | Y        |                                                              |                                 | [yes](./docs/community/roadmap.md) |
+| 7    | Design Documentations | Documentations about the record of feature designs           | Y        |                                                              |                                 | [yes](./docs/design) |
