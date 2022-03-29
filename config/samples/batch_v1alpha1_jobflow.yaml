@@ -1,4 +1,4 @@
-apiVersion: batch.volcano.sh/v1alpha1
+apiVersion: flow.volcano.sh/v1alpha1
 kind: JobFlow
 metadata:
   name: jobflow-sample

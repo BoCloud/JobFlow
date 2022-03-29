@@ -5,7 +5,7 @@ metadata:
   name: jobtemplate-viewer-role
 rules:
 - apiGroups:
-  - batch.volcano.sh
+  - flow.volcano.sh
   resources:
   - jobtemplates
   verbs:
@@ -13,7 +13,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - batch.volcano.sh
+  - flow.volcano.sh
   resources:
   - jobtemplates/status
   verbs:

@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: jobtemplates.batch.volcano.sh
+  name: jobtemplates.flow.volcano.sh
 spec:
-  group: batch.volcano.sh
+  group: flow.volcano.sh
   names:
     kind: JobTemplate
     listKind: JobTemplateList

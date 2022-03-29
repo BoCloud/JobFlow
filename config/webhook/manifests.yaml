@@ -18,7 +18,7 @@ webhooks:
   name: mjobflow.kb.io
   rules:
   - apiGroups:
-    - batch.volcano.sh
+    - flow.volcano.sh
     apiVersions:
     - v1alpha1
     operations:
@@ -39,7 +39,7 @@ webhooks:
   name: mjobtemplate.kb.io
   rules:
   - apiGroups:
-    - batch.volcano.sh
+    - flow.volcano.sh
     apiVersions:
     - v1alpha1
     operations:
@@ -68,7 +68,7 @@ webhooks:
   name: vjobflow.kb.io
   rules:
   - apiGroups:
-    - batch.volcano.sh
+    - flow.volcano.sh
     apiVersions:
     - v1alpha1
     operations:
@@ -89,7 +89,7 @@ webhooks:
   name: vjobtemplate.kb.io
   rules:
   - apiGroups:
-    - batch.volcano.sh
+    - flow.volcano.sh
     apiVersions:
     - v1alpha1
     operations:
