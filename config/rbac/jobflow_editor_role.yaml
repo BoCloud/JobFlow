@@ -5,7 +5,7 @@ metadata:
   name: jobflow-editor-role
 rules:
 - apiGroups:
-  - batch.volcano.sh
+  - flow.volcano.sh
   resources:
   - jobflows
   verbs:
@@ -17,7 +17,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - batch.volcano.sh
+  - flow.volcano.sh
   resources:
   - jobflows/status
   verbs:

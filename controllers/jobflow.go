@@ -50,9 +50,9 @@ type JobFlowReconciler struct {
 	Recorder record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=batch.volcano.sh,resources=jobflows,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=batch.volcano.sh,resources=jobflows/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=batch.volcano.sh,resources=jobflows/finalizers,verbs=update
+// +kubebuilder:rbac:groups=flow.volcano.sh,resources=jobflows,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=flow.volcano.sh,resources=jobflows/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=flow.volcano.sh,resources=jobflows/finalizers,verbs=update
 // +kubebuilder:rbac:groups=batch.volcano.sh,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch.volcano.sh,resources=jobs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch

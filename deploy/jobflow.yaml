@@ -4,9 +4,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: jobflows.batch.volcano.sh
+  name: jobflows.flow.volcano.sh
 spec:
-  group: batch.volcano.sh
+  group: flow.volcano.sh
   names:
     kind: JobFlow
     listKind: JobFlowList
@@ -216,9 +216,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: jobtemplates.batch.volcano.sh
+  name: jobtemplates.flow.volcano.sh
 spec:
-  group: batch.volcano.sh
+  group: flow.volcano.sh
   names:
     kind: JobTemplate
     listKind: JobTemplateList
@@ -4302,7 +4302,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - batch.volcano.sh
+  - flow.volcano.sh
   resources:
   - jobflows
   verbs:
@@ -4314,13 +4314,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - batch.volcano.sh
+  - flow.volcano.sh
   resources:
   - jobflows/finalizers
   verbs:
   - update
 - apiGroups:
-  - batch.volcano.sh
+  - flow.volcano.sh
   resources:
   - jobflows/status
   verbs:
@@ -4348,7 +4348,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - batch.volcano.sh
+  - flow.volcano.sh
   resources:
   - jobtemplates
   verbs:
@@ -4360,13 +4360,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - batch.volcano.sh
+  - flow.volcano.sh
   resources:
   - jobtemplates/finalizers
   verbs:
   - update
 - apiGroups:
-  - batch.volcano.sh
+  - flow.volcano.sh
   resources:
   - jobtemplates/status
   verbs:
