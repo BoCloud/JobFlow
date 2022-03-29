@@ -83,6 +83,8 @@ func validateJobFlowCreate(jobFlow *jobflowv1alpha1.JobFlow) error {
 				for _, parent := range parents {
 					if _, found := vertexMap[parent]; !found {
 						msg += fmt.Sprintf("cannot find the template: %s ", parent)
+						vertexMap = nil
+						break
 					}
 					dag.AddEdge(vertexMap[parent], vertexMap[current])
 				}
