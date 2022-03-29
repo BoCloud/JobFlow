@@ -37,8 +37,8 @@ var service = &router.AdmissionService{
 				{
 					Operations: []whv1beta1.OperationType{whv1beta1.Create},
 					Rule: whv1beta1.Rule{
-						APIGroups:   []string{"batch.volcano.sh"},
-						APIVersions: []string{"v1alpha1"},
+						APIGroups:   []string{jobflowv1alpha1.GroupVersion.Group},
+						APIVersions: []string{jobflowv1alpha1.GroupVersion.Version},
 						Resources:   []string{"jobtemplates"},
 					},
 				},

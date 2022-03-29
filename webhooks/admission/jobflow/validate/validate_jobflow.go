@@ -28,8 +28,8 @@ var service = &router.AdmissionService{
 				{
 					Operations: []whv1beta1.OperationType{whv1beta1.Create},
 					Rule: whv1beta1.Rule{
-						APIGroups:   []string{"batch.volcano.sh"},
-						APIVersions: []string{"v1alpha1"},
+						APIGroups:   []string{jobflowv1alpha1.GroupVersion.Group},
+						APIVersions: []string{jobflowv1alpha1.GroupVersion.Version},
 						Resources:   []string{"jobflows"},
 					},
 				},
@@ -83,6 +83,8 @@ func validateJobFlowCreate(jobFlow *jobflowv1alpha1.JobFlow) error {
 				for _, parent := range parents {
 					if _, found := vertexMap[parent]; !found {
 						msg += fmt.Sprintf("cannot find the template: %s ", parent)
+						vertexMap = nil
+						break
 					}
 					dag.AddEdge(vertexMap[parent], vertexMap[current])
 				}
