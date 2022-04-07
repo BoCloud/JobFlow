@@ -9,7 +9,7 @@ resources:
     namespaced: true
   controller: true
   domain: volcano.sh
-  group: batch
+  group: flow
   kind: JobFlow
   path: jobflow/api/v1alpha1
   version: v1alpha1
@@ -18,7 +18,7 @@ resources:
     namespaced: true
   controller: true
   domain: volcano.sh
-  group: batch
+  group: flow
   kind: JobTemplate
   path: jobflow/api/v1alpha1
   version: v1alpha1

@@ -217,7 +217,13 @@ func (r *JobFlowReconciler) loadJobTemplateAndSetJob(jobFlow jobflowv1alpha1.Job
 // update status
 func (r *JobFlowReconciler) updateStatus(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow) error {
 	klog.Info(fmt.Sprintf("start to update jobFlow status! jobFlowName: %v, jobFlowNamespace: %v ", jobFlow.Name, jobFlow.Namespace))
-	jobFlowStatus, err := r.getAllJobStatus(ctx, jobFlow)
+	allJobList := new(v1alpha1.JobList)
+	err := r.List(ctx, allJobList)
+	if err != nil {
+		klog.Error(err, "")
+		return err
+	}
+	jobFlowStatus, err := getAllJobStatus(jobFlow, allJobList)
 	if err != nil {
 		return err
 	}
@@ -234,13 +240,7 @@ func (r *JobFlowReconciler) updateStatus(ctx context.Context, jobFlow *jobflowv1
 }
 
 // getAllJobStatus Get the information of all created jobs
-func (r *JobFlowReconciler) getAllJobStatus(ctx context.Context, jobFlow *jobflowv1alpha1.JobFlow) (*jobflowv1alpha1.JobFlowStatus, error) {
-	allJobList := new(v1alpha1.JobList)
-	err := r.List(ctx, allJobList)
-	if err != nil {
-		klog.Error(err, "")
-		return nil, err
-	}
+func getAllJobStatus(jobFlow *jobflowv1alpha1.JobFlow, allJobList *v1alpha1.JobList) (*jobflowv1alpha1.JobFlowStatus, error) {
 	jobListRes := make([]v1alpha1.Job, 0)
 	for _, job := range allJobList.Items {
 		for _, reference := range job.OwnerReferences {

@@ -36,6 +36,26 @@ rules:
   - update
   - watch
 - apiGroups:
+  - batch.volcano.sh
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - batch.volcano.sh
+  resources:
+  - jobs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - flow.volcano.sh
   resources:
   - jobflows
@@ -57,26 +77,6 @@ rules:
   - flow.volcano.sh
   resources:
   - jobflows/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - batch.volcano.sh
-  resources:
-  - jobs
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - batch.volcano.sh
-  resources:
-  - jobs/status
   verbs:
   - get
   - patch
