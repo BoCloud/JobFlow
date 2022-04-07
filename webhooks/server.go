@@ -5,16 +5,17 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
-	"k8s.io/api/admissionregistration/v1beta1"
+	"net/http"
+	"regexp"
+	"strconv"
+	"strings"
+
+	whv1 "k8s.io/api/admissionregistration/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/klog"
-	"net/http"
-	"regexp"
-	"strconv"
-	"strings"
 
 	"jobflow/webhooks/router"
 )
@@ -22,7 +23,7 @@ import (
 const (
 	defaultQPS              = 50.0
 	defaultBurst            = 100
-	defaultPort             = 9443
+	defaultPort             = 8725
 	webhookServiceName      = "jobflow-webhook-service"
 	webhookServiceNamespace = "kube-system"
 	defaultEnabledAdmission = "/jobflows/validate,/jobtemplates/validate"
@@ -71,9 +72,9 @@ func Run() error {
 }
 
 func registerWebhookConfig(kubeClient *kubernetes.Clientset, service *router.AdmissionService, caBundle []byte) {
-	clientConfig := v1beta1.WebhookClientConfig{
+	clientConfig := whv1.WebhookClientConfig{
 		CABundle: caBundle,
-		Service: &v1beta1.ServiceReference{
+		Service: &whv1.ServiceReference{
 			Name:      webhookServiceName,
 			Namespace: webhookServiceNamespace,
 			Path:      &service.Path,
@@ -111,8 +112,8 @@ func registerWebhookConfig(kubeClient *kubernetes.Clientset, service *router.Adm
 	}
 }
 
-func registerMutateWebhook(clientset *kubernetes.Clientset, hook *v1beta1.MutatingWebhookConfiguration) error {
-	client := clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations()
+func registerMutateWebhook(clientset *kubernetes.Clientset, hook *whv1.MutatingWebhookConfiguration) error {
+	client := clientset.AdmissionregistrationV1().MutatingWebhookConfigurations()
 	existing, err := client.Get(context.TODO(), hook.Name, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
@@ -133,8 +134,8 @@ func registerMutateWebhook(clientset *kubernetes.Clientset, hook *v1beta1.Mutati
 	return nil
 }
 
-func registerValidateWebhook(clientset *kubernetes.Clientset, hook *v1beta1.ValidatingWebhookConfiguration) error {
-	client := clientset.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations()
+func registerValidateWebhook(clientset *kubernetes.Clientset, hook *whv1.ValidatingWebhookConfiguration) error {
+	client := clientset.AdmissionregistrationV1().ValidatingWebhookConfigurations()
 
 	existing, err := client.Get(context.TODO(), hook.Name, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {

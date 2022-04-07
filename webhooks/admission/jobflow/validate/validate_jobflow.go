@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"k8s.io/api/admission/v1beta1"
-	whv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	whv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/klog"
 
 	jobflowv1alpha1 "jobflow/api/v1alpha1"
@@ -17,23 +17,26 @@ func init() {
 	_ = router.RegisterAdmission(service)
 }
 
+var sideEffectsNone = whv1.SideEffectClassNone
 var service = &router.AdmissionService{
 	Path: "/jobflows/validate",
 	Func: AdmitJobFlows,
 
-	ValidatingConfig: &whv1beta1.ValidatingWebhookConfiguration{
-		Webhooks: []whv1beta1.ValidatingWebhook{{
+	ValidatingConfig: &whv1.ValidatingWebhookConfiguration{
+		Webhooks: []whv1.ValidatingWebhook{{
 			Name: "validatejobflow.volcano.sh",
-			Rules: []whv1beta1.RuleWithOperations{
+			Rules: []whv1.RuleWithOperations{
 				{
-					Operations: []whv1beta1.OperationType{whv1beta1.Create},
-					Rule: whv1beta1.Rule{
+					Operations: []whv1.OperationType{whv1.Create},
+					Rule: whv1.Rule{
 						APIGroups:   []string{"flow.volcano.sh"},
 						APIVersions: []string{"v1alpha1"},
 						Resources:   []string{"jobflows"},
 					},
 				},
 			},
+			SideEffects:             &sideEffectsNone,
+			AdmissionReviewVersions: []string{"v1beta1"},
 		}},
 	},
 }
