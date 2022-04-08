@@ -1,9 +1,9 @@
 apiVersion: flow.volcano.sh/v1alpha1
 kind: JobTemplate
 metadata:
-  name: A
+  name: a
 spec:
-  minAvailable: 3
+  minAvailable: 1
   schedulerName: volcano
   priorityClassName: high-priority
   policies:
@@ -15,25 +15,19 @@ spec:
     svc: []
   maxRetry: 5
   queue: default
-  volumes:
-    - mountPath: "/myinput"
-    - mountPath: "/myoutput"
-      volumeClaimName: "testvolumeclaimname"
-      volumeClaim:
-        accessModes: [ "ReadWriteOnce" ]
-        storageClassName: "my-storage-class"
-        resources:
-          requests:
-            storage: 1Gi
   tasks:
-    - replicas: 6
+    - replicas: 1
       name: "default-nginx"
       template:
         metadata:
           name: web
         spec:
           containers:
-            - image: nginx
+            - image: nginx:1.14.2
+              command:
+                - sh
+                - -c
+                - sleep 10s
               imagePullPolicy: IfNotPresent
               name: nginx
               resources:
@@ -44,9 +38,9 @@ spec:
 apiVersion: flow.volcano.sh/v1alpha1
 kind: JobTemplate
 metadata:
-  name: B
+  name: b
 spec:
-  minAvailable: 3
+  minAvailable: 1
   schedulerName: volcano
   priorityClassName: high-priority
   policies:
@@ -58,25 +52,19 @@ spec:
     svc: []
   maxRetry: 5
   queue: default
-  volumes:
-    - mountPath: "/myinput"
-    - mountPath: "/myoutput"
-      volumeClaimName: "testvolumeclaimname"
-      volumeClaim:
-        accessModes: [ "ReadWriteOnce" ]
-        storageClassName: "my-storage-class"
-        resources:
-          requests:
-            storage: 1Gi
   tasks:
-    - replicas: 6
+    - replicas: 1
       name: "default-nginx"
       template:
         metadata:
           name: web
         spec:
           containers:
-            - image: nginx
+            - image: nginx:1.14.2
+              command:
+                - sh
+                - -c
+                - sleep 10s
               imagePullPolicy: IfNotPresent
               name: nginx
               resources:
@@ -87,9 +75,9 @@ spec:
 apiVersion: flow.volcano.sh/v1alpha1
 kind: JobTemplate
 metadata:
-  name: C
+  name: c
 spec:
-  minAvailable: 3
+  minAvailable: 1
   schedulerName: volcano
   priorityClassName: high-priority
   policies:
@@ -101,25 +89,19 @@ spec:
     svc: []
   maxRetry: 5
   queue: default
-  volumes:
-    - mountPath: "/myinput"
-    - mountPath: "/myoutput"
-      volumeClaimName: "testvolumeclaimname"
-      volumeClaim:
-        accessModes: [ "ReadWriteOnce" ]
-        storageClassName: "my-storage-class"
-        resources:
-          requests:
-            storage: 1Gi
   tasks:
-    - replicas: 6
+    - replicas: 1
       name: "default-nginx"
       template:
         metadata:
           name: web
         spec:
           containers:
-            - image: nginx
+            - image: nginx:1.14.2
+              command:
+                - sh
+                - -c
+                - sleep 10s
               imagePullPolicy: IfNotPresent
               name: nginx
               resources:
@@ -130,9 +112,9 @@ spec:
 apiVersion: flow.volcano.sh/v1alpha1
 kind: JobTemplate
 metadata:
-  name: D
+  name: d
 spec:
-  minAvailable: 3
+  minAvailable: 1
   schedulerName: volcano
   priorityClassName: high-priority
   policies:
@@ -144,25 +126,19 @@ spec:
     svc: []
   maxRetry: 5
   queue: default
-  volumes:
-    - mountPath: "/myinput"
-    - mountPath: "/myoutput"
-      volumeClaimName: "testvolumeclaimname"
-      volumeClaim:
-        accessModes: [ "ReadWriteOnce" ]
-        storageClassName: "my-storage-class"
-        resources:
-          requests:
-            storage: 1Gi
   tasks:
-    - replicas: 6
+    - replicas: 1
       name: "default-nginx"
       template:
         metadata:
           name: web
         spec:
           containers:
-            - image: nginx
+            - image: nginx:1.14.2
+              command:
+                - sh
+                - -c
+                - sleep 10s
               imagePullPolicy: IfNotPresent
               name: nginx
               resources:
@@ -173,9 +149,9 @@ spec:
 apiVersion: flow.volcano.sh/v1alpha1
 kind: JobTemplate
 metadata:
-  name: E
+  name: e
 spec:
-  minAvailable: 3
+  minAvailable: 1
   schedulerName: volcano
   priorityClassName: high-priority
   policies:
@@ -187,25 +163,19 @@ spec:
     svc: []
   maxRetry: 5
   queue: default
-  volumes:
-    - mountPath: "/myinput"
-    - mountPath: "/myoutput"
-      volumeClaimName: "testvolumeclaimname"
-      volumeClaim:
-        accessModes: [ "ReadWriteOnce" ]
-        storageClassName: "my-storage-class"
-        resources:
-          requests:
-            storage: 1Gi
   tasks:
-    - replicas: 6
+    - replicas: 1
       name: "default-nginx"
       template:
         metadata:
           name: web
         spec:
           containers:
-            - image: nginx
+            - image: nginx:1.14.2
+              command:
+                - sh
+                - -c
+                - sleep 10s
               imagePullPolicy: IfNotPresent
               name: nginx
               resources:

@@ -132,7 +132,7 @@ func (r *JobFlowReconciler) deployJob(ctx context.Context, jobFlow jobflowv1alph
 		if err := r.Get(ctx, namespacedNameJob, job); err != nil {
 			if errors.IsNotFound(err) {
 				// If it is not distributed, judge whether the dependency of the VcJob meets the requirements
-				if flow.DependsOn == nil || len(flow.DependsOn.Targets) == 0 {
+				if flow.DependsOn == nil || flow.DependsOn.Targets == nil {
 					if err := r.loadJobTemplateAndSetJob(jobFlow, flow, jobName, job); err != nil {
 						return err
 					}
