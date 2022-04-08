@@ -4,19 +4,19 @@ metadata:
   name: test
   namespace: default
 spec:
-  JobRetainPolicy: delete   # After jobflow runs, keep the generated job. Otherwise, delete it.
+  jobRetainPolicy: delete   # After jobflow runs, keep the generated job. Otherwise, delete it.
   flows:
-    - name: A
-    - name: B
+    - name: a
+    - name: b
       dependsOn:
-        targets: ['A']
-    - name: C
+        targets: ['a']
+    - name: c
       dependsOn:
-        targets: ['B']
-    - name: D
+        targets: ['b']
+    - name: d
       dependsOn:
-        targets: ['B']
-    - name: E
+        targets: ['b']
+    - name: e
       dependsOn:
-        targets: ['C','D']
+        targets: ['c','d']
         

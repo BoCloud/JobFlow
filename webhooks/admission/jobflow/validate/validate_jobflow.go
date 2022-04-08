@@ -74,6 +74,9 @@ func validateJobFlowCreate(jobFlow *jobflowv1alpha1.JobFlow) error {
 			duplicatedTemplate = true
 			break
 		} else {
+			if template.DependsOn == nil || template.DependsOn.Targets == nil {
+				template.DependsOn = new(jobflowv1alpha1.DependsOn)
+			}
 			templateNames[template.Name] = template.DependsOn.Targets
 			vertexMap[template.Name] = &utils.Vertex{Key: template.Name}
 		}
