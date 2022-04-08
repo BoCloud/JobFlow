@@ -122,6 +122,6 @@ var _ = Describe("JobFlow E2E Test", func() {
 		Expect(err).NotTo(HaveOccurred(), "failed to wait for vcjob deleted")
 
 		err = wait.Poll(100*time.Millisecond, util.FiveMinute, util.VcJobNotExist(ctx, jobFlowRes, jobTemplateB))
-		Expect(err).NotTo(HaveOccurred(), "failed to wait for vcjob deletde")
+		Expect(err).NotTo(HaveOccurred(), "failed to wait for vcjob deleted")
 	})
 })
