@@ -99,6 +99,12 @@ e2e-test-jobflow-controller:
 e2e-test-jobtemplate-controller:
 	E2E_TYPE=JOBTEMPLATECONTROLLER ./hack/run-e2e.sh
 
+e2e-test-jobflow-admission:
+	E2E_TYPE=JOBFLOWADMISSION ./hack/run-e2e.sh
+
+e2e-test-jobtemplate-admission:
+	E2E_TYPE=JOBTEMPLATEADMISSION ./hack/run-e2e.sh
+
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 controller-gen: ## Download controller-gen locally if necessary.
