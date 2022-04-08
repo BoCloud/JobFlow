@@ -90,6 +90,15 @@ yaml: manifests kustomize ## Deploy controller to the K8s cluster specified in ~
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 
+e2e:
+	./hack/run-e2e.sh
+
+e2e-test-jobflow-controller:
+	E2E_TYPE=JOBFLOWCONTROLLER ./hack/run-e2e.sh
+
+e2e-test-jobtemplate-controller:
+	E2E_TYPE=JOBTEMPLATECONTROLLER ./hack/run-e2e.sh
+
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 controller-gen: ## Download controller-gen locally if necessary.
